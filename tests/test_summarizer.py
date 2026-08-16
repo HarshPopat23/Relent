@@ -24,9 +24,14 @@ def test_summarizer_empty_guards():
 def test_summarize_mock_pipeline():
     """Verify summarize executes map-reduce chain properly."""
     mock_chain = MagicMock()
-    mock_chain.invoke.side_effect = ["Chunk summary", "### Overview\nFinal combined executive summary."]
+    mock_chain.invoke.side_effect = [
+        "Chunk summary",
+        "### Overview\nFinal combined executive summary.",
+    ]
     mock_prompt_cls = MagicMock()
-    mock_prompt_cls.from_messages.return_value = MagicMock(__or__=lambda s, o: MagicMock(__or__=lambda s2, o2: mock_chain))
+    mock_prompt_cls.from_messages.return_value = MagicMock(
+        __or__=lambda s, o: MagicMock(__or__=lambda s2, o2: mock_chain)
+    )
 
     with patch.dict(
         "sys.modules",

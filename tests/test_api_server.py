@@ -7,16 +7,26 @@ from server import app, clean_pdf_text, session_state
 try:
     import pytest
 
-    fixture_dec = pytest.fixture
+    fixture_dec = pytest.fixture(scope="module")
 except ImportError:
 
     def fixture_dec(func):
         return func
 
 
+_client = None
+
+
+def get_client():
+    global _client
+    if _client is None:
+        _client = TestClient(app)
+    return _client
+
+
 @fixture_dec
 def client():
-    return TestClient(app)
+    return get_client()
 
 
 def test_clean_pdf_text():
@@ -27,8 +37,7 @@ def test_clean_pdf_text():
 
 def test_api_health(client=None):
     """Verify health endpoint response structure."""
-    if client is None:
-        client = TestClient(app)
+    client = client or get_client()
     response = client.get("/api/health")
     assert response.status_code == 200
     data = response.json()
@@ -38,8 +47,7 @@ def test_api_health(client=None):
 
 def test_api_process_missing_source(client=None):
     """Verify validation error when no source is supplied."""
-    if client is None:
-        client = TestClient(app)
+    client = client or get_client()
     response = client.post("/api/process", json={})
     assert response.status_code == 400
     assert "error" in response.json()
@@ -47,8 +55,7 @@ def test_api_process_missing_source(client=None):
 
 def test_api_chat_no_active_video(client=None):
     """Verify chat returns error when no video is indexed."""
-    if client is None:
-        client = TestClient(app)
+    client = client or get_client()
     session_state["result"] = None
     response = client.post("/api/chat", json={"question": "Summarize this"})
     assert response.status_code == 400
@@ -57,8 +64,7 @@ def test_api_chat_no_active_video(client=None):
 
 def test_api_reel_no_active_video(client=None):
     """Verify reel generation returns error when no video is processed."""
-    if client is None:
-        client = TestClient(app)
+    client = client or get_client()
     session_state["result"] = None
     response = client.post("/api/reel", json={"request": "2 min reel"})
     assert response.status_code == 400
@@ -67,8 +73,7 @@ def test_api_reel_no_active_video(client=None):
 
 def test_api_download_endpoints(client=None, sample_pipeline_result=None):
     """Verify download endpoints for various formats."""
-    if client is None:
-        client = TestClient(app)
+    client = client or get_client()
     if sample_pipeline_result is None:
         from tests.conftest import get_sample_pipeline_result
 
@@ -102,8 +107,7 @@ def test_api_download_endpoints(client=None, sample_pipeline_result=None):
 
 def test_api_serve_media_forbidden_and_not_found(client=None):
     """Verify security forbidden and not found handlers on media endpoint."""
-    if client is None:
-        client = TestClient(app)
+    client = client or get_client()
     res_forbidden = client.get("/api/media/forbidden_folder/test.mp4")
     assert res_forbidden.status_code == 403
 
