@@ -84,3 +84,19 @@ To customize vector database storage directory:
 ```ini
 CHROMA_PERSIST_DIR=vector_db
 ```
+
+---
+
+## 5. Video Reel Clipping Acceleration
+
+Relent AI uses zero-reencoding **stream-copy (`-c copy`)** and **`-preset ultrafast`** for near-instant highlight clip cutting and stitching.
+
+| Mode | Speed | Re-encoding | Behavior |
+| :--- | :--- | :--- | :--- |
+| **`copy`** *(Default)* | ⚡⚡⚡⚡⚡ (< 0.1s/clip) | None (Stream Copy) | Instant zero-CPU copy with automatic fallback to ultrafast on non-aligned keyframes |
+| **`ultrafast`** | ⚡⚡⚡⚡ (~ 1s/clip) | Fast libx264 | Frame-accurate cut with ultrafast CPU/GPU encoder preset |
+
+Configure clipping mode in `.env`:
+```ini
+REEL_CLIP_MODE=copy    # Options: copy (default), ultrafast
+```

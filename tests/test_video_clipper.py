@@ -37,7 +37,6 @@ def test_build_reel_missing_video():
 
 def test_build_reel_empty_segments():
     """Verify ValueError when selected segments list is empty."""
-    # Use existing directory or test with dummy path
     with patch("os.path.exists", return_value=True):
         try:
             build_reel("fake_video.mp4", [])
@@ -46,9 +45,11 @@ def test_build_reel_empty_segments():
             pass
 
 
+@patch("os.path.getsize", return_value=1024)
+@patch("os.path.exists", return_value=True)
 @patch("subprocess.run")
-def test_cut_clip_mock(mock_subprocess):
-    """Verify _cut_clip builds expected ffmpeg command."""
+def test_cut_clip_stream_copy_mode(mock_subprocess, mock_exists, mock_getsize):
+    """Verify _cut_clip attempts high-speed stream-copy (-c copy)."""
     mock_subprocess.return_value = MagicMock(returncode=0)
 
     _cut_clip("input.mp4", start=10.0, end=25.0, out_path="out.mp4")
@@ -58,13 +59,32 @@ def test_cut_clip_mock(mock_subprocess):
     cmd = args[0]
     assert "-ss" in cmd
     assert "-i" in cmd
+    assert "copy" in cmd
     assert "input.mp4" in cmd
     assert "out.mp4" in cmd
 
 
 @patch("subprocess.run")
+def test_cut_clip_ultrafast_fallback(mock_subprocess):
+    """Verify _cut_clip falls back to -preset ultrafast on copy failure."""
+    # First call (copy) fails, second call (ultrafast) succeeds
+    mock_subprocess.side_effect = [
+        Exception("Non-aligned keyframes"),
+        MagicMock(returncode=0),
+    ]
+
+    _cut_clip("input.mp4", start=10.0, end=25.0, out_path="out.mp4")
+
+    assert mock_subprocess.call_count == 2
+    args2, _ = mock_subprocess.call_args_list[1]
+    cmd2 = args2[0]
+    assert "ultrafast" in cmd2
+    assert "libx264" in cmd2
+
+
+@patch("subprocess.run")
 def test_concat_clips_mock(mock_subprocess):
-    """Verify _concat_clips builds concat demuxer command."""
+    """Verify _concat_clips builds concat demuxer command with -c copy."""
     mock_subprocess.return_value = MagicMock(returncode=0)
 
     _concat_clips(["clip1.mp4", "clip2.mp4"], out_path="final_reel.mp4")
@@ -74,4 +94,5 @@ def test_concat_clips_mock(mock_subprocess):
     cmd = args[0]
     assert "-f" in cmd
     assert "concat" in cmd
+    assert "copy" in cmd
     assert "final_reel.mp4" in cmd

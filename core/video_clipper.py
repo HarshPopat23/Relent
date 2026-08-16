@@ -1,8 +1,16 @@
+"""Relent AI - Video Clipper & Highlight Reel Engine.
+
+Cuts timestamped video clips and merges them into high-energy reels
+using high-speed stream-copy (-c copy) and -preset ultrafast encoding.
+"""
+
 import os
 import subprocess
 import uuid
 
 _ffmpeg_path = None
+
+REEL_CLIP_MODE = os.getenv("REEL_CLIP_MODE", "copy").lower()  # "copy", "ultrafast"
 
 
 def get_ffmpeg_path() -> str:
@@ -29,12 +37,43 @@ PAD_SECONDS = 0.15
 
 
 def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
-    """Cut one [start, end] slice out of the source video."""
+    """Cut one [start, end] slice out of the source video using fast stream-copy or ultrafast encoding."""
     start_pos = max(0.0, start - PAD_SECONDS)
     duration = max(0.4, (end - start) + (2 * PAD_SECONDS))
+    ffmpeg_bin = get_ffmpeg_path()
 
-    cmd = [
-        get_ffmpeg_path(),
+    # 1. Attempt instantaneous stream copy (-c copy) if enabled
+    if REEL_CLIP_MODE in ("copy", "auto", "stream_copy"):
+        copy_cmd = [
+            ffmpeg_bin,
+            "-y",
+            "-ss",
+            f"{start_pos:.2f}",
+            "-i",
+            video_path,
+            "-t",
+            f"{duration:.2f}",
+            "-c",
+            "copy",
+            "-avoid_negative_ts",
+            "make_zero",
+            out_path,
+        ]
+        try:
+            result = subprocess.run(copy_cmd, check=True, capture_output=True)
+            if (
+                result.returncode == 0
+                and os.path.exists(out_path)
+                and os.path.getsize(out_path) > 0
+            ):
+                return
+        except Exception:
+            # Seamless fallback to ultrafast re-encoding on keyframe alignment / container errors
+            pass
+
+    # 2. Fallback / Precise ultrafast re-encoding
+    encode_cmd = [
+        ffmpeg_bin,
         "-y",
         "-ss",
         f"{start_pos:.2f}",
@@ -46,6 +85,8 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
         "libx264",
         "-preset",
         "ultrafast",
+        "-crf",
+        "22",
         "-pix_fmt",
         "yuv420p",
         "-c:a",
@@ -59,12 +100,11 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
         out_path,
     ]
 
-    subprocess.run(cmd, check=True, capture_output=True)
+    subprocess.run(encode_cmd, check=True, capture_output=True)
 
 
 def _concat_clips(clip_paths: list[str], out_path: str) -> None:
-    """Join clips with ffmpeg's concat demuxer. Safe to stream-copy here since
-    every clip was just re-encoded above with the same codec settings."""
+    """Join clips with ffmpeg's concat demuxer via instant stream copy."""
     list_file = os.path.join(CLIP_DIR, f"concat_{uuid.uuid4().hex}.txt")
 
     with open(list_file, "w", encoding="utf-8") as f:
@@ -96,16 +136,7 @@ def _concat_clips(clip_paths: list[str], out_path: str) -> None:
 def build_reel(
     video_path: str, selected_segments: list[dict], output_name: str | None = None
 ) -> str:
-    """
-    Cut `video_path` at each selected segment's [start, end] and merge the
-    pieces, in order, into one output video.
-
-    selected_segments: the list returned by
-    script_generator.select_segments_for_request() — each item must have
-    "start" and "end" (seconds, relative to the full source video).
-
-    Returns the path to the final reel video (.mp4).
-    """
+    """Cut `video_path` at each selected segment's [start, end] and merge into a high-energy reel."""
     if not video_path or not os.path.exists(video_path):
         raise FileNotFoundError(
             "No source video available to clip (the source may have been audio-only)."
