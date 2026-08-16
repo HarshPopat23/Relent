@@ -5,8 +5,8 @@ echo                 Starting Relent AI Services
 echo =====================================================================
 
 :: 1. Start Ollama Server
-echo [1/3] Launching Ollama Server (CPU Safe Mode)...
-start "Relent - Ollama Server" cmd /k "set OLLAMA_NUM_GPU=0 && ollama serve"
+echo [1/3] Launching Ollama Server (Auto GPU Acceleration)...
+start "Relent - Ollama Server" cmd /k "ollama serve"
 
 :: 2. Start Backend API Server
 echo [2/3] Launching Backend API Server (Port 8000)...

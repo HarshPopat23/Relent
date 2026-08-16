@@ -1,5 +1,8 @@
 """Unit tests for core/script_generator.py."""
 
+import os
+from unittest.mock import MagicMock, patch
+
 from core.script_generator import (
     _extract_id_list_ordered,
     _find_int_list_anywhere,
@@ -7,7 +10,31 @@ from core.script_generator import (
     _parse_target_seconds,
     _trim_to_duration,
     build_script_text,
+    get_llm,
 )
+
+
+def test_script_generator_get_llm_auto_gpu_offloading():
+    """Verify script_generator get_llm enables Auto GPU Offloading by default."""
+    mock_chat_ollama = MagicMock()
+    with patch.dict("sys.modules", {"langchain_ollama": MagicMock(ChatOllama=mock_chat_ollama)}):
+        with patch.dict(os.environ, {}, clear=True):
+            get_llm()
+            mock_chat_ollama.assert_called_once()
+            call_kwargs = mock_chat_ollama.call_args.kwargs
+            assert "num_gpu" not in call_kwargs
+            assert call_kwargs.get("format") == "json"
+
+
+def test_script_generator_get_llm_manual_num_gpu_override():
+    """Verify script_generator get_llm accepts manual OLLAMA_NUM_GPU override."""
+    mock_chat_ollama = MagicMock()
+    with patch.dict("sys.modules", {"langchain_ollama": MagicMock(ChatOllama=mock_chat_ollama)}):
+        with patch.dict(os.environ, {"OLLAMA_NUM_GPU": "0"}):
+            get_llm()
+            mock_chat_ollama.assert_called_once()
+            call_kwargs = mock_chat_ollama.call_args.kwargs
+            assert call_kwargs.get("num_gpu") == 0
 
 
 def test_parse_target_seconds():
