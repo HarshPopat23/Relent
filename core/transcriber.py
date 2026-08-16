@@ -1,3 +1,11 @@
+"""Relent AI - Speech-to-Text Engine.
+
+High-efficiency neural transcription powered by Faster-Whisper (int8/float16)
+with dynamic GPU auto-detection and fallback to standard Whisper and IndicWhisper.
+"""
+
+import gc
+import json
 import os
 import sys
 
@@ -21,53 +29,119 @@ def safe_print(text: str = "") -> None:
 
 
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
+WHISPER_BACKEND = os.getenv(
+    "WHISPER_BACKEND", "auto"
+).lower()  # "auto", "faster-whisper", "whisper"
+WHISPER_COMPUTE_TYPE = os.getenv(
+    "WHISPER_COMPUTE_TYPE", ""
+)  # e.g., "int8", "float16", "int8_float16"
 
-# Path or HF repo id of your installed IndicWhisper checkpoint, e.g.
-# "ai4bharat/indicwhisper" or a local folder path if you downloaded it manually.
+# Path or HF repo id of your installed IndicWhisper checkpoint
 INDICWHISPER_MODEL = os.getenv("INDICWHISPER_MODEL", "ai4bharat/indicwhisper")
-INDICWHISPER_DEVICE = os.getenv("INDICWHISPER_DEVICE", "cpu")  # "cuda" if you have a GPU
+INDICWHISPER_DEVICE = os.getenv("INDICWHISPER_DEVICE", "")
 
-_model = None
+_model_entry = None
 _indicwhisper_pipe = None
 
 
+def get_device_and_compute_type() -> tuple[str, str]:
+    """Detect available hardware (CUDA GPU vs CPU) and optimal quantization compute type."""
+    try:
+        import torch
+
+        cuda_available = torch.cuda.is_available()
+    except Exception:
+        cuda_available = False
+
+    if cuda_available:
+        device = "cuda"
+        compute_type = WHISPER_COMPUTE_TYPE or "float16"
+    else:
+        device = "cpu"
+        compute_type = WHISPER_COMPUTE_TYPE or "int8"
+
+    return device, compute_type
+
+
 def load_model():
-    """Load the Whisper model once and reuse it (used for the 'english' path)."""
-    global _model
+    """Load Faster-Whisper or fallback to standard Whisper with dynamic GPU auto-detection."""
+    global _model_entry
 
-    if _model is None:
-        import whisper
-
-        safe_print(f"Loading Whisper model: {WHISPER_MODEL}...")
-
+    if _model_entry is None:
+        device, compute_type = get_device_and_compute_type()
         model_dir = os.getenv("WHISPER_MODEL_DIR", os.path.join(os.getcwd(), "whisper_models"))
         os.makedirs(model_dir, exist_ok=True)
 
-        model_path = os.path.join(model_dir, f"{WHISPER_MODEL}.pt")
-        target = model_path if os.path.exists(model_path) else WHISPER_MODEL
-        _model = whisper.load_model(target, download_root=model_dir, in_memory=False, device="cpu")
+        loaded = False
 
-        safe_print("Whisper model loaded.")
+        # 1. Attempt Faster-Whisper (CTranslate2 int8 / float16)
+        if WHISPER_BACKEND in ("auto", "faster-whisper", "faster_whisper"):
+            try:
+                from faster_whisper import WhisperModel
 
-    return _model
+                safe_print(
+                    f"Loading Faster-Whisper model: '{WHISPER_MODEL}' on {device.upper()} (compute_type={compute_type})..."
+                )
+                model = WhisperModel(
+                    WHISPER_MODEL,
+                    device=device,
+                    compute_type=compute_type,
+                    download_root=model_dir,
+                )
+                _model_entry = ("faster_whisper", model, device)
+                loaded = True
+                safe_print("Faster-Whisper model loaded successfully.")
+            except Exception as e:
+                if WHISPER_BACKEND in ("faster-whisper", "faster_whisper"):
+                    safe_print(f"Faster-Whisper load failed: {e}")
+                    raise
+                safe_print(
+                    f"Faster-Whisper not available ({e}). Falling back to standard Whisper..."
+                )
+
+        # 2. Fallback to standard OpenAI Whisper
+        if not loaded:
+            import whisper
+
+            safe_print(f"Loading standard Whisper model: '{WHISPER_MODEL}' on {device.upper()}...")
+            model_path = os.path.join(model_dir, f"{WHISPER_MODEL}.pt")
+            target = model_path if os.path.exists(model_path) else WHISPER_MODEL
+            model = whisper.load_model(
+                target,
+                download_root=model_dir,
+                in_memory=False,
+                device=device,
+            )
+            _model_entry = ("whisper", model, device)
+            safe_print("Standard Whisper model loaded.")
+
+    return _model_entry
 
 
 def load_indicwhisper():
-    """Load AI4Bharat IndicWhisper once and reuse it (used for the 'hinglish' path).
-    This replaces Sarvam entirely — no more paid API call, and unlike Sarvam it
-    gives us real segment-level timestamps, which is why the hinglish reel
-    clipping used to be stuck at ~25s granularity."""
+    """Load AI4Bharat IndicWhisper with GPU auto-detection for Hinglish transcripts."""
     global _indicwhisper_pipe
 
     if _indicwhisper_pipe is None:
         from transformers import pipeline
 
-        safe_print(f"Loading IndicWhisper model: {INDICWHISPER_MODEL}...")
+        device_setting = INDICWHISPER_DEVICE
+        if not device_setting:
+            try:
+                import torch
+
+                device_setting = "cuda:0" if torch.cuda.is_available() else "cpu"
+            except Exception:
+                device_setting = "cpu"
+
+        safe_print(
+            f"Loading IndicWhisper model: '{INDICWHISPER_MODEL}' on {str(device_setting).upper()}..."
+        )
 
         _indicwhisper_pipe = pipeline(
             task="automatic-speech-recognition",
             model=INDICWHISPER_MODEL,
-            device=INDICWHISPER_DEVICE,
+            device=device_setting,
             chunk_length_s=25,
             return_timestamps=True,
         )
@@ -78,64 +152,73 @@ def load_indicwhisper():
 
 
 def transcribe_chunk_whisper(chunk_path: str, chunk_offset: float) -> list[dict]:
-    """Transcribe one audio chunk with Whisper and return timestamped segments.
-
-    Whisper timestamps are relative to the chunk, so we add chunk_offset to make
-    them relative to the full original video — this is what makes clipping possible.
-    """
-    model = load_model()
-
-    try:
-        import torch
-
-        use_fp16 = torch.cuda.is_available()
-    except Exception:
-        use_fp16 = False
-
-    result = model.transcribe(chunk_path, task="transcribe", fp16=use_fp16)
-
+    """Transcribe one audio chunk with Faster-Whisper or standard Whisper."""
+    engine_type, model, device = load_model()
     segments = []
-    for seg in result.get("segments", []):
-        text = seg["text"].strip()
-        if not text:
-            continue
-        segments.append(
-            {
-                "start": round(chunk_offset + seg["start"], 2),
-                "end": round(chunk_offset + seg["end"], 2),
-                "text": text,
-            }
+
+    if engine_type == "faster_whisper":
+        segments_iter, _ = model.transcribe(
+            chunk_path,
+            task="transcribe",
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 500},
         )
+        for seg in segments_iter:
+            text = (
+                seg.text.strip()
+                if hasattr(seg, "text")
+                else getattr(seg, "get", lambda k, d="": "")("text", "").strip()
+            )
+            if not text:
+                continue
+            start_time = seg.start if hasattr(seg, "start") else seg.get("start", 0.0)
+            end_time = seg.end if hasattr(seg, "end") else seg.get("end", start_time)
+            segments.append(
+                {
+                    "start": round(chunk_offset + float(start_time), 2),
+                    "end": round(chunk_offset + float(end_time), 2),
+                    "text": text,
+                }
+            )
+    else:
+        use_fp16 = device == "cuda"
+        result = model.transcribe(chunk_path, task="transcribe", fp16=use_fp16)
+        for seg in result.get("segments", []):
+            text = seg.get("text", "").strip()
+            if not text:
+                continue
+            segments.append(
+                {
+                    "start": round(chunk_offset + float(seg["start"]), 2),
+                    "end": round(chunk_offset + float(seg["end"]), 2),
+                    "text": text,
+                }
+            )
 
     return segments
 
 
 def transcribe_chunk_indicwhisper(chunk_path: str, chunk_offset: float) -> list[dict]:
-    """Transcribe one audio chunk with IndicWhisper and return timestamped
-    segments, converted to full-video time using chunk_offset — same as the
-    Whisper path. Unlike Sarvam, this gives per-segment timestamps directly
-    from the model instead of one flat 25s block."""
-
+    """Transcribe one audio chunk with IndicWhisper for Hinglish / Indian languages."""
     pipe = load_indicwhisper()
-
     result = pipe(chunk_path)
 
     segments = []
     for chunk in result.get("chunks", []):
-        text = chunk["text"].strip()
+        text = chunk.get("text", "").strip()
         if not text:
             continue
 
-        start_rel, end_rel = chunk["timestamp"]
+        start_rel, end_rel = chunk.get("timestamp", (None, None))
         if start_rel is None:
             continue
         if end_rel is None:
-            end_rel = start_rel  # last chunk sometimes has an open end
+            end_rel = start_rel
 
         segments.append(
             {
-                "start": round(chunk_offset + start_rel, 2),
-                "end": round(chunk_offset + end_rel, 2),
+                "start": round(chunk_offset + float(start_rel), 2),
+                "end": round(chunk_offset + float(end_rel), 2),
                 "text": text,
             }
         )
@@ -148,13 +231,7 @@ def transcribe_chunk(
     chunk_offset: float,
     language: str = "english",
 ) -> list[dict]:
-    """
-    Route transcription to the appropriate engine.
-
-    english  -> Whisper (small)
-    hinglish -> IndicWhisper (local, replaces Sarvam)
-    """
-
+    """Route transcription to Faster-Whisper or IndicWhisper based on selected language."""
     if language.lower() == "hinglish":
         return transcribe_chunk_indicwhisper(chunk_path, chunk_offset)
 
@@ -162,10 +239,10 @@ def transcribe_chunk(
 
 
 def unload_transcribers():
-    global _model, _indicwhisper_pipe
-    _model = None
+    """Release Whisper models from memory so Ollama has full RAM/VRAM for LLM generation."""
+    global _model_entry, _indicwhisper_pipe
+    _model_entry = None
     _indicwhisper_pipe = None
-    import gc
 
     gc.collect()
     try:
@@ -181,18 +258,8 @@ def transcribe_all(
     wav_chunks: list[dict],
     language: str = "english",
 ) -> list[dict]:
-    """Transcribe all audio chunks and return one flat, time-ordered list of
-    segments across the whole video:
-
-        [{"start": float, "end": float, "text": str}, ...]
-
-    wav_chunks must be the list produced by
-    utils.audio_processor.process_input()["wav_chunks"], i.e.
-    [{"path": str, "offset": float}, ...].
-    """
-    import json
-
-    engine = "IndicWhisper" if language.lower() == "hinglish" else "Whisper"
+    """Transcribe all audio chunks and return one flat, time-ordered list of segments."""
+    engine = "IndicWhisper" if language.lower() == "hinglish" else "Faster-Whisper"
 
     safe_print(f"Using {engine} for transcription.")
 
@@ -227,15 +294,13 @@ def transcribe_all(
 
         all_segments.extend(segments)
 
-    # Free Whisper model from RAM so Ollama has full memory for LLM generation
+    # Free model from RAM/VRAM so Ollama has full memory for LLM generation
     unload_transcribers()
 
     safe_print("Transcription completed.")
-
     return all_segments
 
 
 def segments_to_text(segments: list[dict]) -> str:
-    """Join segment texts into one plain transcript string, for the
-    summarizer/extractor prompts that only need plain text."""
+    """Join segment texts into one plain transcript string."""
     return " ".join(s["text"] for s in segments).strip()

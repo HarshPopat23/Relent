@@ -6,60 +6,67 @@ This document details hardware acceleration, model selection, and performance op
 
 ## 1. LLM Model Selection & Performance
 
-Relent AI connects to any model hosted on your local [Ollama](https://ollama.com) instance.
+Relent AI connects to any model hosted on your local [Ollama](https://ollama.com) instance with **automatic GPU layer offloading**.
 
 | Model | Size | Recommended RAM/VRAM | Strengths | Speed |
 | :--- | :--- | :--- | :--- | :--- |
-| **`qwen2.5-coder:3b`** *(Default)* | 1.9 GB | 4 GB | High instruction following, fast summarization, minimal memory footprint | ⚡⚡⚡⚡⚡ (Fastest) |
+| **`qwen2.5:3b`** *(Recommended)* | 1.9 GB | 4 GB | High instruction following, fast summarization, minimal memory footprint | ⚡⚡⚡⚡⚡ (Fastest) |
 | **`qwen2.5:7b-instruct`** | 4.7 GB | 8 GB | Superior reasoning, detailed meeting summaries, nuanced question answering | ⚡⚡⚡⚡ (High Quality) |
-| **`llama3.2:3b`** | 2.0 GB | 4 GB | Lightweight, concise summaries | ⚡⚡⚡⚡⚡ |
+| **`llama3.2:3b`** | 2.0 GB | 4 GB | Lightweight, concise summaries, 128k context support | ⚡⚡⚡⚡⚡ |
 | **`llama3.1:8b`** | 4.9 GB | 8 GB | Robust semantic understanding and complex multi-turn RAG chat | ⚡⚡⚡ |
 | **`mistral:7b`** | 4.1 GB | 8 GB | Strong general reasoning and action extraction | ⚡⚡⚡ |
 
 To switch models, set `OLLAMA_MODEL` in `.env`:
 ```ini
-OLLAMA_MODEL=qwen2.5:7b-instruct
+OLLAMA_MODEL=qwen2.5:3b
 ```
 
 ---
 
-## 2. Whisper Model Options
+## 2. Faster-Whisper Speech-to-Text & Quantization
 
-The speech-to-text engine supports all OpenAI Whisper checkpoints:
+Relent AI defaults to **Faster-Whisper (CTranslate2)** with 8-bit `int8` quantization for up to **6x faster transcription** and ~50% reduced RAM footprint compared to standard PyTorch Whisper.
 
-| Model | Parameters | Required VRAM / RAM | Relative Speed | Word Error Rate (WER) |
+| Model Checkpoint | Parameters | Required VRAM / RAM | Relative Speed | Word Error Rate (WER) |
 | :--- | :--- | :--- | :--- | :--- |
-| `tiny` | 39 M | ~1 GB | ~10x | Moderate |
-| `base` | 74 M | ~1 GB | ~7x | Good |
-| **`small`** *(Default)* | 244 M | ~2 GB | ~4x | **Optimal Balance** |
-| `medium` | 769 M | ~5 GB | ~2x | High Accuracy |
-| `large-v3` | 1550 M | ~10 GB | 1x | Maximum Accuracy |
+| `tiny` | 39 M | ~0.5 GB | ~15x | Moderate |
+| `base` | 74 M | ~0.7 GB | ~10x | Good |
+| **`small`** *(Default)* | 244 M | ~1.0 GB | **~6x (int8)** | **Optimal Balance** |
+| `medium` | 769 M | ~2.5 GB | ~3x | High Accuracy |
+| `large-v3-turbo` | 808 M | ~2.0 GB | ~4x | Maximum Accuracy |
+| `large-v3` | 1550 M | ~4.5 GB | 1x | Highest Precision |
 
-Configure model size in `.env`:
+Configure backend and compute quantization in `.env`:
 ```ini
 WHISPER_MODEL=small
+WHISPER_BACKEND=auto         # Options: auto, faster-whisper, whisper
+WHISPER_COMPUTE_TYPE=int8    # Options: int8 (CPU default), float16 (CUDA default), int8_float16
 ```
 
 ---
 
-## 3. Hardware Acceleration & Memory Management
+## 3. Hardware Acceleration & Dynamic GPU Auto-Detection
 
 ### GPU Acceleration (NVIDIA CUDA)
-If an NVIDIA GPU with sufficient VRAM (6 GB+) is available, Whisper and Ollama will automatically leverage CUDA.
+If an NVIDIA GPU is present, Relent AI automatically detects CUDA and assigns:
+- **Whisper**: Uses `device="cuda"` with `float16` or `int8_float16` compute type.
+- **IndicWhisper**: Uses `device="cuda:0"`.
+- **Ollama**: Automatically offloads 100% of LLM transformer layers to GPU VRAM.
 
 ### CPU Fallback & Low-Memory Environments
 If running on systems with shared GPU memory or limited VRAM:
-1. Prevent CUDA out-of-memory errors in Ollama by starting Ollama with CPU mode:
+1. Prevent CUDA out-of-memory errors by forcing CPU mode in `.env`:
+   ```ini
+   OLLAMA_NUM_GPU=0
+   WHISPER_COMPUTE_TYPE=int8
+   ```
+2. Or start Ollama with CPU mode:
    ```bash
    # Windows PowerShell
    $env:OLLAMA_NUM_GPU="0"; ollama serve
 
    # Linux / macOS
    OLLAMA_NUM_GPU=0 ollama serve
-   ```
-2. In `.env`, ensure Whisper uses CPU if VRAM is constrained:
-   ```ini
-   WHISPER_MODEL=small
    ```
 
 ---

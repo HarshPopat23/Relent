@@ -7,7 +7,19 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 def get_llm():
     from langchain_ollama import ChatOllama
 
-    return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.2, num_gpu=0)
+    kwargs = {
+        "model": OLLAMA_MODEL,
+        "base_url": OLLAMA_BASE_URL,
+        "temperature": 0.2,
+    }
+    num_gpu = os.getenv("OLLAMA_NUM_GPU")
+    if num_gpu is not None and num_gpu != "":
+        try:
+            kwargs["num_gpu"] = int(num_gpu)
+        except ValueError:
+            pass
+
+    return ChatOllama(**kwargs)
 
 
 def build_chain(system_prompt: str):
