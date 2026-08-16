@@ -29,12 +29,23 @@ def get_ffmpeg_path() -> str:
 
 CLIP_DIR = "clips"
 REEL_DIR = "reels"
-MEDIA_ROOT = os.path.realpath(os.path.abspath(os.getenv("RELENT_MEDIA_ROOT", os.getcwd())))
+MEDIA_ROOT = os.getenv("RELENT_MEDIA_ROOT", os.getcwd())
 os.makedirs(CLIP_DIR, exist_ok=True)
 os.makedirs(REEL_DIR, exist_ok=True)
 
 # Small padding so clips don't feel abruptly cut off mid-word.
 PAD_SECONDS = 0.15
+
+
+def _get_media_root() -> str:
+    """Return validated absolute media root configured via RELENT_MEDIA_ROOT."""
+    raw_root = os.getenv("RELENT_MEDIA_ROOT", os.getcwd())
+    if not raw_root or not raw_root.strip():
+        raise ValueError("RELENT_MEDIA_ROOT must be configured for local file paths.")
+    root = os.path.realpath(os.path.abspath(raw_root.strip()))
+    if not os.path.isdir(root):
+        raise ValueError("RELENT_MEDIA_ROOT does not exist or is not a directory.")
+    return root
 
 
 def _validate_video_input_path(video_path: str) -> str:
@@ -49,10 +60,13 @@ def _validate_video_input_path(video_path: str) -> str:
     if any(ch in candidate for ch in ("\x00", "\n", "\r")):
         raise ValueError("Invalid source video path.")
 
-    normalized = os.path.abspath(candidate)
-    resolved = os.path.realpath(normalized)
-    if os.path.commonpath([MEDIA_ROOT, resolved]) != MEDIA_ROOT:
-        raise ValueError("Source video path is outside the allowed media directory.")
+    media_root = _get_media_root()
+    resolved = os.path.realpath(os.path.abspath(candidate))
+    try:
+        if os.path.commonpath([media_root, resolved]) != media_root:
+            raise ValueError("Source video path is outside the allowed media directory.")
+    except ValueError as err:
+        raise ValueError("Source video path is outside the allowed media directory.") from err
 
     if not os.path.isfile(resolved):
         raise FileNotFoundError(
@@ -74,10 +88,13 @@ def _validate_output_path(out_path: str) -> str:
     if any(ch in candidate for ch in ("\x00", "\n", "\r")):
         raise ValueError("Invalid output path.")
 
-    normalized = os.path.abspath(candidate)
-    resolved = os.path.realpath(normalized)
-    if os.path.commonpath([MEDIA_ROOT, resolved]) != MEDIA_ROOT:
-        raise ValueError("Output path is outside the allowed media directory.")
+    media_root = _get_media_root()
+    resolved = os.path.realpath(os.path.abspath(candidate))
+    try:
+        if os.path.commonpath([media_root, resolved]) != media_root:
+            raise ValueError("Output path is outside the allowed media directory.")
+    except ValueError as err:
+        raise ValueError("Output path is outside the allowed media directory.") from err
 
     return resolved
 
