@@ -16,16 +16,16 @@ if hasattr(sys.stderr, "reconfigure"):
         pass
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import streamlit as st
-
-from core.rag_engine import ask_question
-from main import run_pipeline, run_reel_pipeline
-
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
+
+from core.rag_engine import ask_question
+from main import run_pipeline, run_reel_pipeline
 
 st.set_page_config(
     page_title="AI Video Assistant",
@@ -123,12 +123,13 @@ def build_meeting_pdf(result: dict, chat_history: list[dict]) -> bytes:
 
         doc.build(elements)
         pdf_bytes = buffer.getvalue()
-    except Exception as e:
+    except Exception:
         pdf_bytes = b""
     finally:
         buffer.close()
 
     return pdf_bytes
+
 
 # ----------------------------
 # Input
@@ -251,19 +252,19 @@ if st.session_state.result:
 
     with col1:
         st.download_button(
-        "Download Summary",
-        result["summary"],
-        file_name="video_summary.txt",
-        mime="text/plain",
-    )
+            "Download Summary",
+            result["summary"],
+            file_name="video_summary.txt",
+            mime="text/plain",
+        )
 
     with col2:
         st.download_button(
-        "Download Transcript",
-        result["transcript"],
-        file_name="transcript.txt",
-        mime="text/plain",
-    )
+            "Download Transcript",
+            result["transcript"],
+            file_name="transcript.txt",
+            mime="text/plain",
+        )
 
     with col3:
         pdf_bytes = build_meeting_pdf(
@@ -307,9 +308,7 @@ if st.session_state.result:
             else:
                 with st.spinner("Selecting matching moments and cutting the video..."):
                     try:
-                        st.session_state.reel_result = run_reel_pipeline(
-                            result, reel_request
-                        )
+                        st.session_state.reel_result = run_reel_pipeline(result, reel_request)
                     except Exception as e:
                         st.error(f"Error: {e}")
 

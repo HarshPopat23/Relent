@@ -11,6 +11,7 @@ def get_ffmpeg_path() -> str:
     if _ffmpeg_path is None:
         try:
             import static_ffmpeg
+
             ffmpeg_path, _ = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
             _ffmpeg_path = ffmpeg_path
         except Exception:
@@ -35,16 +36,26 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
     cmd = [
         get_ffmpeg_path(),
         "-y",
-        "-ss", f"{start_pos:.2f}",
-        "-i", video_path,
-        "-t", f"{duration:.2f}",
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-ar", "44100",
-        "-ac", "2",
-        "-avoid_negative_ts", "make_zero",
+        "-ss",
+        f"{start_pos:.2f}",
+        "-i",
+        video_path,
+        "-t",
+        f"{duration:.2f}",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-avoid_negative_ts",
+        "make_zero",
         out_path,
     ]
 
@@ -64,10 +75,14 @@ def _concat_clips(clip_paths: list[str], out_path: str) -> None:
     cmd = [
         get_ffmpeg_path(),
         "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", list_file,
-        "-c", "copy",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        list_file,
+        "-c",
+        "copy",
         out_path,
     ]
 
@@ -78,7 +93,9 @@ def _concat_clips(clip_paths: list[str], out_path: str) -> None:
             os.remove(list_file)
 
 
-def build_reel(video_path: str, selected_segments: list[dict], output_name: str | None = None) -> str:
+def build_reel(
+    video_path: str, selected_segments: list[dict], output_name: str | None = None
+) -> str:
     """
     Cut `video_path` at each selected segment's [start, end] and merge the
     pieces, in order, into one output video.

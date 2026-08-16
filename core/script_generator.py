@@ -28,6 +28,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 def get_llm():
     from langchain_ollama import ChatOllama
+
     # temperature=0 for maximum consistency picking IDs; format="json" forces
     # Ollama to constrain output to valid JSON instead of hoping the model
     # follows the "only a JSON array" instruction on its own.
@@ -90,7 +91,9 @@ def _duration_hint(target_seconds: float | None) -> str:
     return f"Target total duration: approximately {int(target_seconds)} seconds."
 
 
-def _trim_to_duration(segments_in_relevance_order: list[dict], target_seconds: float | None) -> list[dict]:
+def _trim_to_duration(
+    segments_in_relevance_order: list[dict], target_seconds: float | None
+) -> list[dict]:
     """Greedily keep adding segments (in the order given) until the total
     duration reaches the target, then stop — this is what actually enforces
     the requested length, since the LLM alone won't reliably self-limit."""
@@ -159,7 +162,9 @@ def _extract_id_list_ordered(raw: str, max_id: int) -> list[int]:
                 pass
 
     if ids is None:
-        safe_print(f"⚠️ Reel selector: could not extract any segment IDs. Raw model output was:\n{raw[:500]}")
+        safe_print(
+            f"⚠️ Reel selector: could not extract any segment IDs. Raw model output was:\n{raw[:500]}"
+        )
         return []
 
     seen = set()
@@ -172,7 +177,9 @@ def _extract_id_list_ordered(raw: str, max_id: int) -> list[int]:
     return clean_ids
 
 
-def _select_from_batch(segments: list[dict], user_request: str, target_seconds: float | None) -> list[dict]:
+def _select_from_batch(
+    segments: list[dict], user_request: str, target_seconds: float | None
+) -> list[dict]:
     """Run one LLM selection call over a single batch of segments (<= MAX_SEGMENTS_PER_CALL)."""
     if not segments:
         return []
@@ -187,9 +194,7 @@ def _select_from_batch(segments: list[dict], user_request: str, target_seconds: 
             ("system", SELECTOR_SYSTEM_PROMPT),
             (
                 "human",
-                "User request: {user_request}\n"
-                "{duration_hint}\n\n"
-                "Transcript segments:\n{segments}",
+                "User request: {user_request}\n{duration_hint}\n\nTranscript segments:\n{segments}",
             ),
         ]
     )
@@ -232,7 +237,9 @@ def select_segments_for_request(segments: list[dict], user_request: str) -> list
         relevance_ordered.extend(_select_from_batch(batch, user_request, target_seconds))
 
     if not relevance_ordered:
-        safe_print("⚠️ Reel selector: no segments matched LLM filter, selecting representative segments.")
+        safe_print(
+            "⚠️ Reel selector: no segments matched LLM filter, selecting representative segments."
+        )
         # Fallback: take segments spread across the video
         step = max(1, len(segments) // 25)
         relevance_ordered = segments[::step]

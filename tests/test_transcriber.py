@@ -1,6 +1,7 @@
 """Unit tests for core/transcriber.py."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from core.transcriber import segments_to_text, transcribe_all, unload_transcribers
 
 
@@ -25,9 +26,7 @@ def test_unload_transcribers():
 @patch("core.transcriber.transcribe_chunk")
 def test_transcribe_all(mock_transcribe):
     """Verify transcribe_all loops through all wav chunks and collects segments."""
-    mock_transcribe.return_value = [
-        {"start": 0.0, "end": 10.0, "text": "Segment 1"}
-    ]
+    mock_transcribe.return_value = [{"start": 0.0, "end": 10.0, "text": "Segment 1"}]
 
     wav_chunks = [
         {"path": "chunk_0.wav", "offset": 0.0},

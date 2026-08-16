@@ -1,12 +1,15 @@
 """Integration and unit tests for server.py Starlette REST API endpoints."""
 
 from starlette.testclient import TestClient
+
 from server import app, clean_pdf_text, session_state
 
 try:
     import pytest
+
     fixture_dec = pytest.fixture
 except ImportError:
+
     def fixture_dec(func):
         return func
 
@@ -68,6 +71,7 @@ def test_api_download_endpoints(client=None, sample_pipeline_result=None):
         client = TestClient(app)
     if sample_pipeline_result is None:
         from tests.conftest import sample_pipeline_result as spr
+
         sample_pipeline_result = spr()
 
     # Temporarily set mock result in session

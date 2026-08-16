@@ -99,7 +99,11 @@ Use `unittest.mock.patch` or `pytest` fixtures in `tests/conftest.py` when testi
 2. Define your engine function: `transcribe_chunk_yourmodel(chunk_path: str, chunk_offset: float) -> list[dict]`.
 3. Ensure timestamps are returned relative to the global video:
    ```python
-   {"start": round(chunk_offset + s["start"], 2), "end": round(chunk_offset + s["end"], 2), "text": s["text"]}
+   {
+       "start": round(chunk_offset + s["start"], 2),
+       "end": round(chunk_offset + s["end"], 2),
+       "text": s["text"],
+   }
    ```
 4. Register the engine in `transcribe_chunk()`.
 

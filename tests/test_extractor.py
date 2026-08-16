@@ -1,6 +1,7 @@
 """Unit tests for core/extractor.py."""
 
 from unittest.mock import patch
+
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
 
 

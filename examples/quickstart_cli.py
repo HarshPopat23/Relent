@@ -10,7 +10,7 @@ import sys
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from main import run_pipeline, format_markdown_report
+from main import format_markdown_report, run_pipeline
 
 
 def main():

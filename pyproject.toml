@@ -145,6 +145,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long, handled by ruff formatter
+    "E402",  # module level import not at top of file (needed for load_dotenv and utf8 setup)
     "B008",  # do not perform function calls in argument defaults
     "C901",  # complex functions
 ]

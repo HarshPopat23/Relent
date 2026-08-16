@@ -36,11 +36,13 @@ def get_embeddings():
     """Load the embedding model."""
     try:
         import torch
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
     except Exception:
         device = "cpu"
 
     from langchain_huggingface import HuggingFaceEmbeddings
+
     return HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL,
         model_kwargs={"device": device},

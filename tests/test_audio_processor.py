@@ -41,7 +41,7 @@ def test_convert_to_wav_missing_file():
     """Verify FileNotFoundError when input file does not exist."""
     try:
         convert_to_wav("non_existent_file_12345.mp4")
-        assert False, "Expected FileNotFoundError"
+        raise AssertionError("Expected FileNotFoundError")
     except FileNotFoundError:
         pass
 
@@ -59,7 +59,7 @@ def test_chunk_audio_with_offsets(mock_audio_segment, tmp_path=None):
     # 25 minutes with 10 min chunks should yield 3 chunks (0-10m, 10-20m, 20-25m)
     assert len(chunks) == 3
     assert chunks[0]["offset"] == 0.0
-    assert chunks[1]["offset"] == 600.0   # 10 minutes = 600 seconds
+    assert chunks[1]["offset"] == 600.0  # 10 minutes = 600 seconds
     assert chunks[2]["offset"] == 1200.0  # 20 minutes = 1200 seconds
 
 

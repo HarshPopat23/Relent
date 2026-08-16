@@ -12,6 +12,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 def get_llm():
     from langchain_ollama import ChatOllama
+
     return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.3, num_gpu=0)
 
 
@@ -19,6 +20,7 @@ def split_transcript(transcript: str) -> list[str]:
     """Split long transcript into manageable chunks for map-reduce summarization."""
     try:
         from langchain_text_splitters import RecursiveCharacterTextSplitter
+
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=3000,
             chunk_overlap=200,
@@ -27,7 +29,9 @@ def split_transcript(transcript: str) -> list[str]:
     except ImportError:
         # Fallback simple split if langchain_text_splitters is not installed
         chunk_size = 3000
-        return [transcript[i:i + chunk_size] for i in range(0, len(transcript), chunk_size - 200)] or [""]
+        return [
+            transcript[i : i + chunk_size] for i in range(0, len(transcript), chunk_size - 200)
+        ] or [""]
 
 
 def summarize(transcript: str) -> str:
@@ -54,10 +58,7 @@ def summarize(transcript: str) -> str:
 
     chunks = split_transcript(transcript)
 
-    chunk_summaries = [
-        map_chain.invoke({"text": chunk})
-        for chunk in chunks
-    ]
+    chunk_summaries = [map_chain.invoke({"text": chunk}) for chunk in chunks]
 
     combined_summary = "\n\n".join(chunk_summaries)
 

@@ -37,6 +37,7 @@ def load_model():
 
     if _model is None:
         import whisper
+
         safe_print(f"Loading Whisper model: {WHISPER_MODEL}...")
 
         model_dir = os.getenv("WHISPER_MODEL_DIR", os.path.join(os.getcwd(), "whisper_models"))
@@ -60,6 +61,7 @@ def load_indicwhisper():
 
     if _indicwhisper_pipe is None:
         from transformers import pipeline
+
         safe_print(f"Loading IndicWhisper model: {INDICWHISPER_MODEL}...")
 
         _indicwhisper_pipe = pipeline(
@@ -75,7 +77,6 @@ def load_indicwhisper():
     return _indicwhisper_pipe
 
 
-
 def transcribe_chunk_whisper(chunk_path: str, chunk_offset: float) -> list[dict]:
     """Transcribe one audio chunk with Whisper and return timestamped segments.
 
@@ -86,6 +87,7 @@ def transcribe_chunk_whisper(chunk_path: str, chunk_offset: float) -> list[dict]
 
     try:
         import torch
+
         use_fp16 = torch.cuda.is_available()
     except Exception:
         use_fp16 = False
@@ -164,8 +166,11 @@ def unload_transcribers():
     _model = None
     _indicwhisper_pipe = None
     import gc
+
     gc.collect()
     try:
+        import torch
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     except Exception:
@@ -198,7 +203,7 @@ def transcribe_all(
         cache_file = f"{chunk['path']}.{language}.json"
         if os.path.exists(cache_file):
             try:
-                with open(cache_file, "r", encoding="utf-8") as f:
+                with open(cache_file, encoding="utf-8") as f:
                     segments = json.load(f)
                 safe_print(f"Loaded cached transcript for chunk {i}/{total_chunks}.")
                 all_segments.extend(segments)

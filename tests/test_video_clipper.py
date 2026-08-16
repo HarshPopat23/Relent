@@ -30,7 +30,7 @@ def test_build_reel_missing_video():
     """Verify FileNotFoundError when source video does not exist."""
     try:
         build_reel("non_existent_video_path.mp4", [{"start": 0, "end": 10}])
-        assert False, "Expected FileNotFoundError"
+        raise AssertionError("Expected FileNotFoundError")
     except FileNotFoundError:
         pass
 
@@ -41,7 +41,7 @@ def test_build_reel_empty_segments():
     with patch("os.path.exists", return_value=True):
         try:
             build_reel("fake_video.mp4", [])
-            assert False, "Expected ValueError"
+            raise AssertionError("Expected ValueError")
         except ValueError:
             pass
 

@@ -6,6 +6,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 def get_llm():
     from langchain_ollama import ChatOllama
+
     return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.2, num_gpu=0)
 
 
@@ -18,13 +19,16 @@ def build_chain(system_prompt: str):
     return (
         RunnablePassthrough()
         | RunnableLambda(lambda x: {"text": x})
-        | ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "{text}"),
-        ])
+        | ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                ("human", "{text}"),
+            ]
+        )
         | llm
         | StrOutputParser()
     )
+
 
 def extract_action_items(transcript: str) -> str:
     if not transcript or not transcript.strip():
@@ -39,6 +43,7 @@ def extract_action_items(transcript: str) -> str:
     )
 
     return chain.invoke(transcript)
+
 
 def extract_key_decisions(transcript: str) -> str:
     if not transcript or not transcript.strip():

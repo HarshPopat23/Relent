@@ -10,8 +10,10 @@ if PROJECT_ROOT not in sys.path:
 
 try:
     import pytest
+
     fixture_decorator = pytest.fixture
 except ImportError:
+
     def fixture_decorator(func):
         return func
 

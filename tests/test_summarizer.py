@@ -1,6 +1,7 @@
 """Unit tests for core/summarizer.py."""
 
 from unittest.mock import MagicMock, patch
+
 from core.summarizer import generate_subtitle, generate_title, split_transcript, summarize
 
 

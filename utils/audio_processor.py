@@ -30,12 +30,16 @@ def _ensure_ffmpeg() -> tuple[str, str]:
     if not _ffmpeg_configured:
         try:
             import static_ffmpeg
-            ffmpeg_path, ffprobe_path = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
+
+            ffmpeg_path, ffprobe_path = (
+                static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
+            )
             _ffmpeg_dir = os.path.dirname(ffmpeg_path)
             if _ffmpeg_dir not in os.environ.get("PATH", ""):
                 os.environ["PATH"] += os.pathsep + _ffmpeg_dir
 
             from pydub import AudioSegment
+
             AudioSegment.converter = ffmpeg_path
             AudioSegment.ffprobe = ffprobe_path
             _ffmpeg_configured = True
@@ -60,6 +64,7 @@ def download_youtube_video(url: str) -> str:
     audio track and threw the video away — we need the video for clipping.
     """
     import yt_dlp
+
     _ensure_ffmpeg()
     output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
 
@@ -70,11 +75,7 @@ def download_youtube_video(url: str) -> str:
         "quiet": True,
         "windowsfilenames": True,
         "noplaylist": True,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "ios", "web"]
-            }
-        },
+        "extractor_args": {"youtube": {"player_client": ["android", "ios", "web"]}},
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         },

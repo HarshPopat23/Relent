@@ -1,11 +1,13 @@
 """Unit tests for core/rag_engine.py and core/vector_store.py."""
 
 from unittest.mock import MagicMock, patch
+
 from core.rag_engine import ask_question, format_docs
 
 try:
     from langchain_core.documents import Document
 except ImportError:
+
     class Document:
         def __init__(self, page_content="", metadata=None):
             self.page_content = page_content

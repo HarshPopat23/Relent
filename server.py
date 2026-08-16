@@ -2,7 +2,6 @@ import asyncio
 import os
 import sys
 import tempfile
-import uuid
 from io import BytesIO
 
 # Ensure UTF-8 output on Windows consoles
@@ -18,21 +17,20 @@ if hasattr(sys.stderr, "reconfigure"):
         pass
 
 from dotenv import load_dotenv
+
 load_dotenv()
-
-from starlette.applications import Starlette
-from starlette.middleware import Middleware
-from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, JSONResponse, Response
-from starlette.routing import Route, Mount
-from starlette.staticfiles import StaticFiles
-
-from core.rag_engine import ask_question
-from main import run_pipeline, run_reel_pipeline
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import FileResponse, JSONResponse, Response
+from starlette.routing import Route
+
+from core.rag_engine import ask_question
+from main import run_pipeline, run_reel_pipeline
 
 # In-memory storage for active video session
 session_state = {
@@ -112,7 +110,7 @@ def build_meeting_pdf(result: dict, chat_history: list[dict]) -> bytes:
 
         doc.build(elements)
         pdf_bytes = buffer.getvalue()
-    except Exception as e:
+    except Exception:
         pdf_bytes = b""
     finally:
         buffer.close()
@@ -124,13 +122,16 @@ def build_meeting_pdf(result: dict, chat_history: list[dict]) -> bytes:
 # API Route Handlers
 # ----------------------------------------------------
 
+
 async def api_health(request):
-    return JSONResponse({
-        "status": "online",
-        "model": OLLAMA_MODEL,
-        "base_url": OLLAMA_BASE_URL,
-        "has_active_video": session_state["result"] is not None,
-    })
+    return JSONResponse(
+        {
+            "status": "online",
+            "model": OLLAMA_MODEL,
+            "base_url": OLLAMA_BASE_URL,
+            "has_active_video": session_state["result"] is not None,
+        }
+    )
 
 
 async def api_process(request):
@@ -176,25 +177,30 @@ async def api_process(request):
             video_name = os.path.basename(result["video_path"])
             video_url = f"/api/media/downloads/{video_name}"
 
-        return JSONResponse({
-            "success": True,
-            "title": result.get("title", ""),
-            "subtitle": result.get("subtitle", ""),
-            "summary": result.get("summary", ""),
-            "action_items": result.get("action_items", ""),
-            "key_decisions": result.get("key_decisions", ""),
-            "open_questions": result.get("open_questions", ""),
-            "transcript": result.get("transcript", ""),
-            "video_url": video_url,
-            "segments_count": len(result.get("segments", [])),
-        })
+        return JSONResponse(
+            {
+                "success": True,
+                "title": result.get("title", ""),
+                "subtitle": result.get("subtitle", ""),
+                "summary": result.get("summary", ""),
+                "action_items": result.get("action_items", ""),
+                "key_decisions": result.get("key_decisions", ""),
+                "open_questions": result.get("open_questions", ""),
+                "transcript": result.get("transcript", ""),
+                "video_url": video_url,
+                "segments_count": len(result.get("segments", [])),
+            }
+        )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
 async def api_chat(request):
     if not session_state.get("result") or not session_state["result"].get("rag_chain"):
-        return JSONResponse({"error": "No video has been processed yet. Please process a video first."}, status_code=400)
+        return JSONResponse(
+            {"error": "No video has been processed yet. Please process a video first."},
+            status_code=400,
+        )
 
     try:
         body = await request.json()
@@ -205,23 +211,29 @@ async def api_chat(request):
         rag_chain = session_state["result"]["rag_chain"]
         answer = await asyncio.to_thread(ask_question, rag_chain, question)
 
-        session_state["chat_history"].append({
-            "question": question,
-            "answer": answer,
-        })
+        session_state["chat_history"].append(
+            {
+                "question": question,
+                "answer": answer,
+            }
+        )
 
-        return JSONResponse({
-            "question": question,
-            "answer": answer,
-            "history": session_state["chat_history"],
-        })
+        return JSONResponse(
+            {
+                "question": question,
+                "answer": answer,
+                "history": session_state["chat_history"],
+            }
+        )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
 async def api_reel(request):
     if not session_state.get("result"):
-        return JSONResponse({"error": "No video available. Process a video first."}, status_code=400)
+        return JSONResponse(
+            {"error": "No video available. Process a video first."}, status_code=400
+        )
 
     try:
         body = await request.json()
@@ -229,7 +241,9 @@ async def api_reel(request):
         if not user_request:
             return JSONResponse({"error": "Reel prompt description is required."}, status_code=400)
 
-        reel_result = await asyncio.to_thread(run_reel_pipeline, session_state["result"], user_request)
+        reel_result = await asyncio.to_thread(
+            run_reel_pipeline, session_state["result"], user_request
+        )
 
         reel_url = None
         if reel_result.get("reel_path") and os.path.exists(reel_result["reel_path"]):
@@ -238,12 +252,14 @@ async def api_reel(request):
 
         session_state["last_reel"] = reel_result
 
-        return JSONResponse({
-            "script": reel_result.get("script", ""),
-            "reel_url": reel_url,
-            "selected_segments": reel_result.get("selected_segments", []),
-            "error": reel_result.get("error"),
-        })
+        return JSONResponse(
+            {
+                "script": reel_result.get("script", ""),
+                "reel_url": reel_url,
+                "selected_segments": reel_result.get("selected_segments", []),
+                "error": reel_result.get("error"),
+            }
+        )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -260,46 +276,46 @@ async def api_download(request):
         return Response(
             content=content,
             media_type="text/plain",
-            headers={"Content-Disposition": 'attachment; filename="video_summary.txt"'}
+            headers={"Content-Disposition": 'attachment; filename="video_summary.txt"'},
         )
     elif format_type == "transcript":
         content = result.get("transcript", "")
         return Response(
             content=content,
             media_type="text/plain",
-            headers={"Content-Disposition": 'attachment; filename="transcript.txt"'}
+            headers={"Content-Disposition": 'attachment; filename="transcript.txt"'},
         )
     elif format_type == "markdown":
-        md = f"""# {result.get('title', 'Video Report')}
+        md = f"""# {result.get("title", "Video Report")}
 
-**{result.get('subtitle', '')}**
+**{result.get("subtitle", "")}**
 
 ## Executive Summary
-{result.get('summary', '')}
+{result.get("summary", "")}
 
 ## Action Items
-{result.get('action_items', '')}
+{result.get("action_items", "")}
 
 ## Key Decisions
-{result.get('key_decisions', '')}
+{result.get("key_decisions", "")}
 
 ## Open Questions
-{result.get('open_questions', '')}
+{result.get("open_questions", "")}
 
 ## Full Transcript
-{result.get('transcript', '')}
+{result.get("transcript", "")}
 """
         return Response(
             content=md,
             media_type="text/markdown",
-            headers={"Content-Disposition": 'attachment; filename="video_intelligence_report.md"'}
+            headers={"Content-Disposition": 'attachment; filename="video_intelligence_report.md"'},
         )
     elif format_type == "pdf":
         pdf_bytes = build_meeting_pdf(result, session_state.get("chat_history", []))
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": 'attachment; filename="video_intelligence_report.pdf"'}
+            headers={"Content-Disposition": 'attachment; filename="video_intelligence_report.pdf"'},
         )
     else:
         return JSONResponse({"error": f"Unknown format {format_type}"}, status_code=400)

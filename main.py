@@ -6,7 +6,6 @@ decisions, open questions, semantic RAG search, and automated highlight reels.
 
 import argparse
 import json
-import os
 import sys
 
 # Ensure UTF-8 output on Windows consoles to prevent charmap encoding crashes
@@ -72,7 +71,7 @@ def run_pipeline(source: str, language: str = "english") -> dict:
         "title": title,
         "subtitle": subtitle,
         "transcript": transcript,
-        "segments": segments,          # kept for reel generation
+        "segments": segments,  # kept for reel generation
         "video_path": inputs["video_path"],  # kept for reel generation
         "summary": summary,
         "action_items": action_items,
@@ -117,34 +116,34 @@ def run_reel_pipeline(result: dict, user_request: str) -> dict:
 
 def format_markdown_report(res: dict) -> str:
     """Format pipeline results into a markdown intelligence report."""
-    return f"""# {res.get('title', 'Video Report')}
+    return f"""# {res.get("title", "Video Report")}
 
-**{res.get('subtitle', '')}**
+**{res.get("subtitle", "")}**
 
 ---
 
 ## 📋 Executive Summary
-{res.get('summary', 'No summary available.')}
+{res.get("summary", "No summary available.")}
 
 ---
 
 ## ✅ Action Items
-{res.get('action_items', 'No action items recorded.')}
+{res.get("action_items", "No action items recorded.")}
 
 ---
 
 ## 🔑 Key Decisions
-{res.get('key_decisions', 'No key decisions recorded.')}
+{res.get("key_decisions", "No key decisions recorded.")}
 
 ---
 
 ## ❓ Open Questions / Follow-ups
-{res.get('open_questions', 'No open questions.')}
+{res.get("open_questions", "No open questions.")}
 
 ---
 
 ## 📝 Full Transcript
-{res.get('transcript', '')}
+{res.get("transcript", "")}
 """
 
 
@@ -210,29 +209,34 @@ def main():
         description="Relent AI - Local Neural Video Intelligence & AI Reel Studio",
     )
     parser.add_argument(
-        "--version", "-v",
+        "--version",
+        "-v",
         action="version",
         version=f"Relent AI v{__version__}",
     )
     parser.add_argument(
-        "--source", "-s",
+        "--source",
+        "-s",
         type=str,
         help="YouTube URL or local path to audio/video file",
     )
     parser.add_argument(
-        "--language", "-l",
+        "--language",
+        "-l",
         type=str,
         default="english",
         choices=["english", "hinglish"],
         help="Transcription speech engine language (default: english)",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=str,
         help="Path to save markdown report (e.g., report.md)",
     )
     parser.add_argument(
-        "--reel", "-r",
+        "--reel",
+        "-r",
         type=str,
         help="Automatically generate a highlight reel with the given prompt (e.g. '2 minutes overview')",
     )
@@ -242,7 +246,8 @@ def main():
         help="Output results as JSON to stdout (non-interactive)",
     )
     parser.add_argument(
-        "--interactive", "-i",
+        "--interactive",
+        "-i",
         action="store_true",
         help="Force interactive Q&A mode after processing",
     )

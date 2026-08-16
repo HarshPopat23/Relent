@@ -32,6 +32,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 def get_llm():
     from langchain_ollama import ChatOllama
+
     return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.3, num_gpu=0)
 
 
@@ -78,6 +79,7 @@ def build_rag_chain(transcript: str):
     from langchain_core.output_parsers import StrOutputParser
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+
     from core.vector_store import build_vector_store, get_retriever
 
     vector_store = build_vector_store(transcript=transcript)
@@ -108,6 +110,7 @@ def load_rag_chain():
     from langchain_core.output_parsers import StrOutputParser
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+
     from core.vector_store import get_retriever, load_vector_store
 
     vector_store = load_vector_store()
