@@ -10,7 +10,8 @@ ffmpeg-python>=0.2.0
 static-ffmpeg>=2.5
 rich>=13.0.0
 
-# -- Speech-to-Text (OpenAI Whisper & IndicWhisper) --
+# -- Speech-to-Text (Faster-Whisper int8, OpenAI Whisper & IndicWhisper) --
+faster-whisper>=1.0.0
 openai-whisper>=20231117
 transformers>=4.38.0
 torch>=2.0.0

@@ -113,7 +113,7 @@ pip install -e ".[dev]"
 ### 2. Configure Local LLM & Ollama
 ```bash
 # Pull the recommended model in Ollama
-ollama pull qwen2.5-coder:3b
+ollama pull qwen2.5:3b
 
 # Copy the environment file template
 cp .env.example .env

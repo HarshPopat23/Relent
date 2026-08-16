@@ -32,13 +32,20 @@ def get_llm():
     # temperature=0 for maximum consistency picking IDs; format="json" forces
     # Ollama to constrain output to valid JSON instead of hoping the model
     # follows the "only a JSON array" instruction on its own.
-    return ChatOllama(
-        model=OLLAMA_MODEL,
-        base_url=OLLAMA_BASE_URL,
-        temperature=0,
-        format="json",
-        num_gpu=0,
-    )
+    kwargs = {
+        "model": OLLAMA_MODEL,
+        "base_url": OLLAMA_BASE_URL,
+        "temperature": 0,
+        "format": "json",
+    }
+    num_gpu = os.getenv("OLLAMA_NUM_GPU")
+    if num_gpu is not None and num_gpu != "":
+        try:
+            kwargs["num_gpu"] = int(num_gpu)
+        except ValueError:
+            pass
+
+    return ChatOllama(**kwargs)
 
 
 # The LLM never writes new text — it only picks segment IDs. This is what

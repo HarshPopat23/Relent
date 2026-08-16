@@ -45,7 +45,7 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
         "-c:v",
         "libx264",
         "-preset",
-        "veryfast",
+        "ultrafast",
         "-pix_fmt",
         "yuv420p",
         "-c:a",
