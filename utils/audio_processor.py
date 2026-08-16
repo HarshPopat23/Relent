@@ -97,7 +97,17 @@ def download_youtube_video(url: str) -> str:
     return video_path
 
 
-MEDIA_ROOT = os.path.realpath(os.path.abspath(os.getenv("RELENT_MEDIA_ROOT", os.getcwd())))
+MEDIA_ROOT = os.getenv("RELENT_MEDIA_ROOT")
+
+
+def _get_media_root() -> str:
+    """Return validated absolute media root configured via RELENT_MEDIA_ROOT."""
+    if not MEDIA_ROOT or not MEDIA_ROOT.strip():
+        raise ValueError("RELENT_MEDIA_ROOT must be configured for local file paths.")
+    root = os.path.realpath(os.path.abspath(MEDIA_ROOT.strip()))
+    if not os.path.isdir(root):
+        raise ValueError("RELENT_MEDIA_ROOT does not exist or is not a directory.")
+    return root
 
 
 def _sanitize_audio_path(file_path: str) -> str:
@@ -109,8 +119,13 @@ def _sanitize_audio_path(file_path: str) -> str:
         raise ValueError("Invalid file path.")
     if any(ch in candidate for ch in ("\x00", "\n", "\r")):
         raise ValueError("Invalid file path.")
+
+    media_root = _get_media_root()
     resolved_path = os.path.realpath(os.path.abspath(candidate))
-    if os.path.commonpath([MEDIA_ROOT, resolved_path]) != MEDIA_ROOT:
+    try:
+        if os.path.commonpath([media_root, resolved_path]) != media_root:
+            raise ValueError("File path is outside the allowed media directory.")
+    except ValueError:
         raise ValueError("File path is outside the allowed media directory.")
     return resolved_path
 
