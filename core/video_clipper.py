@@ -36,28 +36,50 @@ os.makedirs(REEL_DIR, exist_ok=True)
 PAD_SECONDS = 0.15
 
 
-def _sanitize_input_media_path(video_path: str) -> str:
-    """Validate and normalize local media path before passing it to ffmpeg."""
-    if not isinstance(video_path, str):
-        raise ValueError("Invalid video path type.")
+def _validate_video_input_path(video_path: str) -> str:
+    """Validate and normalize user-influenced video paths before passing to ffmpeg."""
+    if not isinstance(video_path, str) or not video_path.strip():
+        raise ValueError("Invalid source video path.")
 
-    normalized = os.path.abspath(video_path.strip())
-    if not normalized or not os.path.isfile(normalized):
-        raise FileNotFoundError(f"Invalid source video path: {video_path}")
+    candidate = video_path.strip()
+    if candidate.startswith("-"):
+        raise ValueError("Invalid source video path.")
 
-    # Prevent ffmpeg option-style argument confusion via crafted filenames.
-    if os.path.basename(normalized).startswith("-"):
-        raise ValueError("Invalid source video filename.")
+    if any(ch in candidate for ch in ("\x00", "\n", "\r")):
+        raise ValueError("Invalid source video path.")
+
+    normalized = os.path.abspath(candidate)
+    if not os.path.isfile(normalized):
+        raise FileNotFoundError(
+            "No source video available to clip (the source may have been audio-only)."
+        )
 
     return normalized
 
 
+def _validate_output_path(out_path: str) -> str:
+    """Validate and normalize output paths before passing to ffmpeg."""
+    if not isinstance(out_path, str) or not out_path.strip():
+        raise ValueError("Invalid output path.")
+
+    candidate = out_path.strip()
+    if candidate.startswith("-"):
+        raise ValueError("Invalid output path.")
+
+    if any(ch in candidate for ch in ("\x00", "\n", "\r")):
+        raise ValueError("Invalid output path.")
+
+    return os.path.abspath(candidate)
+
+
 def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
     """Cut one [start, end] slice out of the source video using fast stream-copy or ultrafast encoding."""
-    start_pos = max(0.0, start - PAD_SECONDS)
-    duration = max(0.4, (end - start) + (2 * PAD_SECONDS))
+    safe_video_path = _validate_video_input_path(video_path)
+    safe_out_path = _validate_output_path(out_path)
+
+    start_pos = max(0.0, float(start) - PAD_SECONDS)
+    duration = max(0.4, float(end - start) + (2 * PAD_SECONDS))
     ffmpeg_bin = get_ffmpeg_path()
-    safe_video_path = _sanitize_input_media_path(video_path)
 
     # 1. Attempt instantaneous stream copy (-c copy) if enabled
     if REEL_CLIP_MODE in ("copy", "auto", "stream_copy"):
@@ -67,21 +89,21 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
             "-ss",
             f"{start_pos:.2f}",
             "-i",
-            safe_video_path,
+            f"file:{safe_video_path}",
             "-t",
             f"{duration:.2f}",
             "-c",
             "copy",
             "-avoid_negative_ts",
             "make_zero",
-            out_path,
+            safe_out_path,
         ]
         try:
             result = subprocess.run(copy_cmd, check=True, capture_output=True)
             if (
                 result.returncode == 0
-                and os.path.exists(out_path)
-                and os.path.getsize(out_path) > 0
+                and os.path.exists(safe_out_path)
+                and os.path.getsize(safe_out_path) > 0
             ):
                 return
         except Exception:
@@ -95,7 +117,7 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
         "-ss",
         f"{start_pos:.2f}",
         "-i",
-        safe_video_path,
+        f"file:{safe_video_path}",
         "-t",
         f"{duration:.2f}",
         "-c:v",
@@ -114,7 +136,7 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
         "2",
         "-avoid_negative_ts",
         "make_zero",
-        out_path,
+        safe_out_path,
     ]
 
     subprocess.run(encode_cmd, check=True, capture_output=True)
@@ -122,11 +144,13 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
 
 def _concat_clips(clip_paths: list[str], out_path: str) -> None:
     """Join clips with ffmpeg's concat demuxer via instant stream copy."""
+    safe_out_path = _validate_output_path(out_path)
     list_file = os.path.join(CLIP_DIR, f"concat_{uuid.uuid4().hex}.txt")
 
     with open(list_file, "w", encoding="utf-8") as f:
         for path in clip_paths:
-            normalized_path = os.path.abspath(path).replace("\\", "/")
+            safe_clip = _validate_video_input_path(path)
+            normalized_path = safe_clip.replace("\\", "/")
             f.write(f"file '{normalized_path}'\n")
 
     cmd = [
@@ -137,10 +161,10 @@ def _concat_clips(clip_paths: list[str], out_path: str) -> None:
         "-safe",
         "0",
         "-i",
-        list_file,
+        f"file:{list_file}",
         "-c",
         "copy",
-        out_path,
+        safe_out_path,
     ]
 
     try:
@@ -154,10 +178,7 @@ def build_reel(
     video_path: str, selected_segments: list[dict], output_name: str | None = None
 ) -> str:
     """Cut `video_path` at each selected segment's [start, end] and merge into a high-energy reel."""
-    if not video_path or not os.path.exists(video_path):
-        raise FileNotFoundError(
-            "No source video available to clip (the source may have been audio-only)."
-        )
+    validated_video_path = _validate_video_input_path(video_path)
 
     if not selected_segments:
         raise ValueError("No segments were selected — nothing to clip.")
@@ -167,7 +188,7 @@ def build_reel(
     try:
         for i, seg in enumerate(selected_segments):
             clip_path = os.path.join(CLIP_DIR, f"clip_{uuid.uuid4().hex}_{i}.mp4")
-            _cut_clip(video_path, seg["start"], seg["end"], clip_path)
+            _cut_clip(validated_video_path, seg["start"], seg["end"], clip_path)
             clip_paths.append(clip_path)
 
         output_name = output_name or f"reel_{uuid.uuid4().hex}.mp4"
