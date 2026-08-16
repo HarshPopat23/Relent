@@ -96,6 +96,9 @@ def download_youtube_video(url: str) -> str:
     return video_path
 
 
+MEDIA_ROOT = os.path.realpath(os.path.abspath(os.getenv("RELENT_MEDIA_ROOT", os.getcwd())))
+
+
 def _sanitize_audio_path(file_path: str) -> str:
     """Validate and normalize local media path to prevent path traversal / injection."""
     if not isinstance(file_path, str) or not file_path.strip():
@@ -105,7 +108,10 @@ def _sanitize_audio_path(file_path: str) -> str:
         raise ValueError("Invalid file path.")
     if any(ch in candidate for ch in ("\x00", "\n", "\r")):
         raise ValueError("Invalid file path.")
-    return os.path.abspath(candidate)
+    resolved_path = os.path.realpath(os.path.abspath(candidate))
+    if os.path.commonpath([MEDIA_ROOT, resolved_path]) != MEDIA_ROOT:
+        raise ValueError("File path is outside the allowed media directory.")
+    return resolved_path
 
 
 def convert_to_wav(input_path: str) -> str:

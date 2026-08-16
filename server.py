@@ -322,15 +322,26 @@ async def api_download(request):
 
 
 async def api_serve_media(request):
-    folder = request.path_params.get("folder")
-    filename = request.path_params.get("filename")
+    folder = str(request.path_params.get("folder", "")).strip()
+    filename = str(request.path_params.get("filename", "")).strip()
 
     allowed_folders = {"downloads": "downloads", "reels": "reels", "clips": "clips"}
     if folder not in allowed_folders:
         return JSONResponse({"error": "Forbidden"}, status_code=403)
 
-    filepath = os.path.join(allowed_folders[folder], filename)
-    if not os.path.exists(filepath):
+    if (
+        not filename
+        or filename.startswith("-")
+        or any(ch in filename for ch in ("\x00", "\n", "\r", "/", "\\"))
+    ):
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+
+    base_dir = os.path.realpath(os.path.abspath(allowed_folders[folder]))
+    filepath = os.path.realpath(os.path.abspath(os.path.join(base_dir, filename)))
+    if os.path.commonpath([base_dir, filepath]) != base_dir:
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+
+    if not os.path.isfile(filepath):
         return JSONResponse({"error": "File not found"}, status_code=404)
 
     return FileResponse(filepath, media_type="video/mp4")
