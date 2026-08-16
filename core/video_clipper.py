@@ -29,6 +29,7 @@ def get_ffmpeg_path() -> str:
 
 CLIP_DIR = "clips"
 REEL_DIR = "reels"
+MEDIA_ROOT = os.path.realpath(os.path.abspath(os.getenv("RELENT_MEDIA_ROOT", os.getcwd())))
 os.makedirs(CLIP_DIR, exist_ok=True)
 os.makedirs(REEL_DIR, exist_ok=True)
 
@@ -49,12 +50,16 @@ def _validate_video_input_path(video_path: str) -> str:
         raise ValueError("Invalid source video path.")
 
     normalized = os.path.abspath(candidate)
-    if not os.path.isfile(normalized):
+    resolved = os.path.realpath(normalized)
+    if os.path.commonpath([MEDIA_ROOT, resolved]) != MEDIA_ROOT:
+        raise ValueError("Source video path is outside the allowed media directory.")
+
+    if not os.path.isfile(resolved):
         raise FileNotFoundError(
             "No source video available to clip (the source may have been audio-only)."
         )
 
-    return normalized
+    return resolved
 
 
 def _validate_output_path(out_path: str) -> str:
