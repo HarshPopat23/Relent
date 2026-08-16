@@ -84,7 +84,11 @@ def _format_segments_for_prompt(segments: list[dict]) -> str:
 
 
 def _parse_target_seconds(user_request: str) -> float | None:
-    match = re.search(r"(\d+(?:\.\d+)?)\s*(second|sec|minute|min)", user_request.lower())
+    """Safely parse requested duration from user query with length bounding."""
+    if not isinstance(user_request, str) or not user_request.strip():
+        return None
+    bounded_text = user_request[:300].strip().lower()
+    match = re.search(r"\b(\d{1,6}(?:\.\d{1,4})?)\s*(second|sec|minute|min)", bounded_text)
     if not match:
         return None
     value, unit = match.groups()

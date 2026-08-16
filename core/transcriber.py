@@ -7,6 +7,7 @@ with dynamic GPU auto-detection and fallback to standard Whisper and IndicWhispe
 import gc
 import json
 import os
+import re
 import sys
 
 # Ensure UTF-8 output
@@ -266,9 +267,16 @@ def transcribe_all(
     all_segments = []
     total_chunks = len(wav_chunks)
 
+    safe_lang = re.sub(r"[^a-zA-Z0-9_-]", "", str(language)) or "default"
+
     for i, chunk in enumerate(wav_chunks, start=1):
-        cache_file = f"{chunk['path']}.{language}.json"
-        if os.path.exists(cache_file):
+        raw_chunk_path = str(chunk.get("path", "")).strip()
+        if not raw_chunk_path:
+            continue
+        safe_chunk_path = os.path.abspath(raw_chunk_path)
+        cache_file = f"{safe_chunk_path}.{safe_lang}.json"
+
+        if os.path.isfile(cache_file):
             try:
                 with open(cache_file, encoding="utf-8") as f:
                     segments = json.load(f)
@@ -281,7 +289,7 @@ def transcribe_all(
         safe_print(f"Transcribing chunk {i}/{total_chunks}...")
 
         segments = transcribe_chunk(
-            chunk["path"],
+            safe_chunk_path,
             chunk["offset"],
             language=language,
         )
