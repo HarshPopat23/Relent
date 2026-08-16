@@ -5,6 +5,7 @@ with dynamic GPU auto-detection and fallback to standard Whisper and IndicWhispe
 """
 
 import gc
+import hashlib
 import json
 import os
 import re
@@ -255,27 +256,17 @@ def unload_transcribers():
         pass
 
 
+CACHE_DIR = "transcripts_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
 MEDIA_ROOT = os.path.realpath(os.path.abspath(os.getenv("RELENT_MEDIA_ROOT", os.getcwd())))
 
 
 def _sanitize_cache_path(chunk_path: str, language: str) -> str:
-    """Generate a safe, sanitized cache file path within MEDIA_ROOT."""
+    """Generate a safe, hash-based transcript cache path within CACHE_DIR."""
     raw_chunk = str(chunk_path).strip()
-    if (
-        not raw_chunk
-        or raw_chunk.startswith("-")
-        or any(ch in raw_chunk for ch in ("\x00", "\n", "\r"))
-    ):
-        raise ValueError("Invalid chunk path.")
     safe_lang = re.sub(r"[^a-zA-Z0-9_-]", "", str(language)) or "default"
-    resolved_chunk = os.path.realpath(os.path.abspath(raw_chunk))
-    if os.path.commonpath([MEDIA_ROOT, resolved_chunk]) != MEDIA_ROOT:
-        raise ValueError("Chunk path is outside the allowed media directory.")
-    cache_candidate = f"{resolved_chunk}.{safe_lang}.json"
-    resolved_cache = os.path.realpath(os.path.abspath(cache_candidate))
-    if os.path.commonpath([MEDIA_ROOT, resolved_cache]) != MEDIA_ROOT:
-        raise ValueError("Cache path is outside the allowed media directory.")
-    return resolved_cache
+    chunk_hash = hashlib.sha256(raw_chunk.encode("utf-8")).hexdigest()[:16]
+    return os.path.join(CACHE_DIR, f"transcript_{chunk_hash}_{safe_lang}.json")
 
 
 def transcribe_all(

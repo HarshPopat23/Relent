@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sys
 
@@ -120,8 +121,8 @@ def convert_to_wav(input_path: str) -> str:
     if not os.path.isfile(safe_input_path):
         raise FileNotFoundError(f"Local file not found: {input_path}")
 
-    base_no_ext = os.path.splitext(safe_input_path)[0]
-    output_path = f"{base_no_ext}_converted.wav"
+    path_hash = hashlib.sha256(safe_input_path.encode("utf-8")).hexdigest()[:16]
+    output_path = os.path.join(DOWNLOAD_DIR, f"audio_{path_hash}_converted.wav")
     if os.path.isfile(output_path) and os.path.getsize(output_path) > 0:
         return output_path
 
@@ -149,11 +150,12 @@ def chunk_audio_with_offsets(wav_path: str, chunk_minutes: int = 10) -> list[dic
 
     audio = AudioSegment.from_wav(safe_wav_path)
     chunk_ms = chunk_minutes * 60 * 1000
+    wav_hash = hashlib.sha256(safe_wav_path.encode("utf-8")).hexdigest()[:16]
 
     chunks = []
 
     for i, start in enumerate(range(0, len(audio), chunk_ms)):
-        chunk_path = f"{safe_wav_path}_chunk_{i}.wav"
+        chunk_path = os.path.join(DOWNLOAD_DIR, f"chunk_{wav_hash}_{i}.wav")
         if not (os.path.isfile(chunk_path) and os.path.getsize(chunk_path) > 0):
             chunk = audio[start : start + chunk_ms]
             chunk.export(chunk_path, format="wav")
