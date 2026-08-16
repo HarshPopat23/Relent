@@ -1,0 +1,172 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relent-ai"
+version = "0.1.0"
+description = "Open-Source Neural Video Intelligence & AI Highlight Reel Studio"
+readme = "README.md"
+authors = [
+    { name = "Relent AI Contributors", email = "community@relent.ai" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = [
+    "video-intelligence",
+    "whisper",
+    "ollama",
+    "rag",
+    "speech-to-text",
+    "video-summarization",
+    "reel-generator",
+    "langchain",
+    "chromadb",
+    "ffmpeg"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "yt-dlp>=2024.0.0",
+    "pydub>=0.25.1",
+    "ffmpeg-python>=0.2.0",
+    "static-ffmpeg>=2.5",
+    "rich>=13.0.0",
+    "openai-whisper>=20231117",
+    "transformers>=4.38.0",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "deep-translator>=1.11.4",
+    "langchain>=0.2.0",
+    "langchain-core>=0.2.0",
+    "langchain-community>=0.2.0",
+    "langchain-ollama>=0.1.0",
+    "chromadb>=0.5.0",
+    "sentence-transformers>=2.6.0",
+    "langchain-huggingface>=0.0.1",
+    "huggingface-hub>=0.22.0",
+    "tiktoken>=0.7.0",
+    "streamlit>=1.35.0",
+    "streamlit-extras>=0.4.0",
+    "watchdog>=4.0.0",
+    "starlette>=0.37.0",
+    "uvicorn>=0.29.0",
+    "python-multipart>=0.0.9",
+    "reportlab>=4.1.0",
+    "fpdf2>=2.7.9",
+    "python-dotenv>=1.0.1",
+    "numpy>=1.24.0",
+    "tqdm>=4.66.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.4.0",
+    "black>=24.3.0",
+    "isort>=5.13.0",
+    "pre-commit>=3.7.0",
+    "httpx>=0.27.0",
+]
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/HarshPopat23/Relent"
+Documentation = "https://github.com/HarshPopat23/Relent/tree/main/docs"
+Repository = "https://github.com/HarshPopat23/Relent.git"
+Issues = "https://github.com/HarshPopat23/Relent/issues"
+Changelog = "https://github.com/HarshPopat23/Relent/blob/main/CHANGELOG.md"
+
+[project.scripts]
+relent-ai = "main:main"
+relent-ai-server = "server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "utils*"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "unit: Unit tests with mock fixtures",
+    "integration: Integration tests requiring filesystem or API calls",
+    "slow: Tests that execute long audio or deep learning workflows",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "C",    # flake8-comprehensions
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by ruff formatter
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # complex functions
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "utils"]
+
+[tool.coverage.run]
+source = ["core", "utils", "main", "server"]
+omit = [
+    "tests/*",
+    "frontend/*",
+    "whisper_models/*",
+    "vector_db/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+show_missing = true

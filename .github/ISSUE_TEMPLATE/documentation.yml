@@ -1,0 +1,27 @@
+name: 📖 Documentation Improvement
+description: Suggest improvements, corrections, or additions to Relent AI documentation.
+title: "[DOCS]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Clear and accurate documentation helps everyone! Please describe what part of the documentation needs attention.
+
+  - type: textarea
+    id: doc_area
+    attributes:
+      label: Documentation Page / Section
+      description: Link to the doc page or file (e.g. `docs/ARCHITECTURE.md`, `README.md`).
+      placeholder: docs/CONFIGURATION.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Issue / Missing Content
+      description: What is missing, unclear, or incorrect?
+      placeholder: Explain what should be added or updated...
+    validations:
+      required: true

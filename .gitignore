@@ -1,0 +1,84 @@
+# ==============================================================================
+# Relent AI .gitignore
+# ==============================================================================
+
+# Python Environments & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/*.mp4
+downloads/*.wav
+downloads/*.json
+downloads/*.m4a
+downloads/*.webm
+!downloads/.gitkeep
+
+# Generated Media Clips & Reels
+clips/*.mp4
+clips/*.wav
+clips/*.json
+!clips/.gitkeep
+
+reels/*.mp4
+reels/*.wav
+reels/*.json
+!reels/.gitkeep
+
+temp/
+*.tmp
+
+# Vector Store & AI Models
+vector_db/*
+!vector_db/.gitkeep
+whisper_models/*
+!whisper_models/.gitkeep
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Frontend Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+
+# Testing & Coverage
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+*.cover
+coverage.xml
+
+# Logs & OS Metadata
+*.log
+*.sqlite
+*.sqlite3
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local scratch / test files
+error.log
+t.txt
+time.html
+video_notes_*.md

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions & Q&A
+    url: https://github.com/HarshPopat23/Relent/discussions
+    about: Ask questions, share ideas, or get help with setup from the community.
+  - name: 🛡️ Security Vulnerability Reporting
+    url: https://github.com/HarshPopat23/Relent/security/policy
+    about: Privately report a security issue following our security policy.

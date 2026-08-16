@@ -1,0 +1,58 @@
+# ==============================================================================
+# Relent AI Dependencies
+# Python >= 3.10
+# ==============================================================================
+
+# -- Media Acquisition & Audio Processing --
+yt-dlp>=2024.0.0
+pydub>=0.25.1
+ffmpeg-python>=0.2.0
+static-ffmpeg>=2.5
+rich>=13.0.0
+
+# -- Speech-to-Text (OpenAI Whisper & IndicWhisper) --
+openai-whisper>=20231117
+transformers>=4.38.0
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# -- Translation --
+deep-translator>=1.11.4
+
+# -- LLM & Agentic Orchestration (LangChain LCEL + Ollama) --
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-ollama>=0.1.0
+
+# -- Vector Database & Embeddings --
+chromadb>=0.5.0
+sentence-transformers>=2.6.0
+langchain-huggingface>=0.0.1
+huggingface-hub>=0.22.0
+tiktoken>=0.7.0
+
+# -- Streamlit UI & Server Backends --
+streamlit>=1.35.0
+streamlit-extras>=0.4.0
+watchdog>=4.0.0
+starlette>=0.37.0
+uvicorn>=0.29.0
+python-multipart>=0.0.9
+
+# -- Document & Report Export --
+reportlab>=4.1.0
+fpdf2>=2.7.9
+
+# -- Utilities & Environment --
+python-dotenv>=1.0.1
+numpy>=1.24.0
+tqdm>=4.66.0
+requests>=2.31.0
+
+# -- Testing & Quality (Development) --
+pytest>=8.0.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.23.0
+ruff>=0.4.0
+httpx>=0.27.0

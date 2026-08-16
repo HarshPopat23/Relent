@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use Relent AI in your research or project, please cite it as below."
+authors:
+  - name: "Relent AI Contributors"
+title: "Relent AI: Open-Source Neural Video Intelligence & AI Highlight Reel Studio"
+version: 0.1.0
+date-released: 2026-08-16
+url: "https://github.com/HarshPopat23/Relent"
+repository-code: "https://github.com/HarshPopat23/Relent"
+license: MIT
+keywords:
+  - video intelligence
+  - whisper
+  - speech-to-text
+  - ollama
+  - rag
+  - highlight reels

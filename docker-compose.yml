@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: relent-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+  relent-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: relent-app
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5-coder:3b
+      - WHISPER_MODEL=small
+    volumes:
+      - ./downloads:/app/downloads
+      - ./clips:/app/clips
+      - ./reels:/app/reels
+      - ./vector_db:/app/vector_db
+      - ./whisper_models:/app/whisper_models
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_models:
