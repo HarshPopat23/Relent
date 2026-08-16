@@ -1,8 +1,15 @@
 """Unit tests for core/summarizer.py."""
 
+import os
 from unittest.mock import MagicMock, patch
 
-from core.summarizer import generate_subtitle, generate_title, split_transcript, summarize
+from core.summarizer import (
+    generate_subtitle,
+    generate_title,
+    get_llm,
+    split_transcript,
+    summarize,
+)
 
 
 def test_split_transcript():
@@ -19,6 +26,29 @@ def test_summarizer_empty_guards():
     assert summarize("   ") == "No transcript content available to summarize."
     assert generate_title("") == "Untitled Video"
     assert generate_subtitle("") == "No description available"
+
+
+def test_get_llm_auto_gpu_offloading_default():
+    """Verify get_llm does not force CPU mode by default, allowing Ollama Auto GPU Offloading."""
+    mock_chat_ollama = MagicMock()
+    with patch.dict("sys.modules", {"langchain_ollama": MagicMock(ChatOllama=mock_chat_ollama)}):
+        with patch.dict(os.environ, {}, clear=True):
+            get_llm()
+            mock_chat_ollama.assert_called_once()
+            call_kwargs = mock_chat_ollama.call_args.kwargs
+            # When num_gpu is not passed in kwargs, Ollama automatically offloads layers to GPU
+            assert "num_gpu" not in call_kwargs
+
+
+def test_get_llm_manual_num_gpu_override():
+    """Verify get_llm respects explicit OLLAMA_NUM_GPU environment variable."""
+    mock_chat_ollama = MagicMock()
+    with patch.dict("sys.modules", {"langchain_ollama": MagicMock(ChatOllama=mock_chat_ollama)}):
+        with patch.dict(os.environ, {"OLLAMA_NUM_GPU": "0"}):
+            get_llm()
+            mock_chat_ollama.assert_called_once()
+            call_kwargs = mock_chat_ollama.call_args.kwargs
+            assert call_kwargs.get("num_gpu") == 0
 
 
 def test_summarize_mock_pipeline():
