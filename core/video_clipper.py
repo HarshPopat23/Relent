@@ -74,7 +74,12 @@ def _validate_output_path(out_path: str) -> str:
     if any(ch in candidate for ch in ("\x00", "\n", "\r")):
         raise ValueError("Invalid output path.")
 
-    return os.path.abspath(candidate)
+    normalized = os.path.abspath(candidate)
+    resolved = os.path.realpath(normalized)
+    if os.path.commonpath([MEDIA_ROOT, resolved]) != MEDIA_ROOT:
+        raise ValueError("Output path is outside the allowed media directory.")
+
+    return resolved
 
 
 def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
