@@ -36,11 +36,28 @@ os.makedirs(REEL_DIR, exist_ok=True)
 PAD_SECONDS = 0.15
 
 
+def _sanitize_input_media_path(video_path: str) -> str:
+    """Validate and normalize local media path before passing it to ffmpeg."""
+    if not isinstance(video_path, str):
+        raise ValueError("Invalid video path type.")
+
+    normalized = os.path.abspath(video_path.strip())
+    if not normalized or not os.path.isfile(normalized):
+        raise FileNotFoundError(f"Invalid source video path: {video_path}")
+
+    # Prevent ffmpeg option-style argument confusion via crafted filenames.
+    if os.path.basename(normalized).startswith("-"):
+        raise ValueError("Invalid source video filename.")
+
+    return normalized
+
+
 def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
     """Cut one [start, end] slice out of the source video using fast stream-copy or ultrafast encoding."""
     start_pos = max(0.0, start - PAD_SECONDS)
     duration = max(0.4, (end - start) + (2 * PAD_SECONDS))
     ffmpeg_bin = get_ffmpeg_path()
+    safe_video_path = _sanitize_input_media_path(video_path)
 
     # 1. Attempt instantaneous stream copy (-c copy) if enabled
     if REEL_CLIP_MODE in ("copy", "auto", "stream_copy"):
@@ -50,7 +67,7 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
             "-ss",
             f"{start_pos:.2f}",
             "-i",
-            video_path,
+            safe_video_path,
             "-t",
             f"{duration:.2f}",
             "-c",
@@ -78,7 +95,7 @@ def _cut_clip(video_path: str, start: float, end: float, out_path: str) -> None:
         "-ss",
         f"{start_pos:.2f}",
         "-i",
-        video_path,
+        safe_video_path,
         "-t",
         f"{duration:.2f}",
         "-c:v",
