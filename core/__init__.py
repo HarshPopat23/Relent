@@ -13,6 +13,7 @@ from core.rag_engine import ask_question, build_rag_chain, load_rag_chain
 from core.script_generator import build_script_text, select_segments_for_request
 from core.summarizer import generate_subtitle, generate_title, summarize
 from core.transcriber import segments_to_text, transcribe_all
+from core.vector_store import build_vector_store, get_retriever, load_vector_store
 from core.video_clipper import build_reel
 
 __all__ = [
@@ -30,5 +31,8 @@ __all__ = [
     "summarize",
     "segments_to_text",
     "transcribe_all",
+    "build_vector_store",
+    "get_retriever",
+    "load_vector_store",
     "build_reel",
 ]

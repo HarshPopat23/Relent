@@ -46,15 +46,17 @@ def test_convert_to_wav_missing_file():
         pass
 
 
-@patch("pydub.AudioSegment")
-def test_chunk_audio_with_offsets(mock_audio_segment, tmp_path=None):
+def test_chunk_audio_with_offsets():
     """Verify chunk calculation and offset mathematics."""
     mock_segment = MagicMock()
     # Mock audio length of 25 minutes (25 * 60 * 1000 ms)
     mock_segment.__len__.return_value = 25 * 60 * 1000
+    mock_audio_segment = MagicMock()
     mock_audio_segment.from_wav.return_value = mock_segment
 
-    chunks = chunk_audio_with_offsets("fake_path.wav", chunk_minutes=10)
+    with patch.dict("sys.modules", {"pydub": MagicMock(AudioSegment=mock_audio_segment)}):
+        with patch("utils.audio_processor.AudioSegment", mock_audio_segment, create=True):
+            chunks = chunk_audio_with_offsets("fake_path.wav", chunk_minutes=10)
 
     # 25 minutes with 10 min chunks should yield 3 chunks (0-10m, 10-20m, 20-25m)
     assert len(chunks) == 3

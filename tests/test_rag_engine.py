@@ -36,14 +36,22 @@ def test_ask_question_mock():
     mock_chain.invoke.assert_called_once_with("What was the model trained on?")
 
 
-@patch("core.vector_store.get_embeddings")
-@patch("langchain_chroma.Chroma")
-def test_vector_store_build_mock(mock_chroma, mock_embeddings):
+def test_vector_store_build_mock():
     """Verify build_vector_store splits transcript into documents."""
-    from core.vector_store import build_vector_store
+    import core.vector_store as vs
 
-    mock_chroma.from_documents.return_value = MagicMock()
-    transcript = "Relent AI is a local neural video assistant. " * 50
+    mock_chroma_class = MagicMock()
+    mock_chroma_class.from_documents.return_value = MagicMock()
 
-    vector_store = build_vector_store(transcript)
-    assert vector_store is not None
+    with patch.object(vs, "get_embeddings", return_value=MagicMock()):
+        with patch.dict(
+            "sys.modules",
+            {
+                "langchain_chroma": MagicMock(Chroma=mock_chroma_class),
+                "langchain_core.documents": MagicMock(Document=MagicMock),
+                "langchain_text_splitters": MagicMock(RecursiveCharacterTextSplitter=MagicMock()),
+            },
+        ):
+            transcript = "Relent AI is a local neural video assistant. " * 50
+            vector_store = vs.build_vector_store(transcript)
+            assert vector_store is not None

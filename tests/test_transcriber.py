@@ -23,14 +23,16 @@ def test_unload_transcribers():
     unload_transcribers()
 
 
+@patch("os.path.exists", return_value=False)
+@patch("builtins.open", create=True)
 @patch("core.transcriber.transcribe_chunk")
-def test_transcribe_all(mock_transcribe):
+def test_transcribe_all(mock_transcribe, mock_open, mock_exists):
     """Verify transcribe_all loops through all wav chunks and collects segments."""
     mock_transcribe.return_value = [{"start": 0.0, "end": 10.0, "text": "Segment 1"}]
 
     wav_chunks = [
-        {"path": "chunk_0.wav", "offset": 0.0},
-        {"path": "chunk_1.wav", "offset": 600.0},
+        {"path": "dummy_test_chunk_0.wav", "offset": 0.0},
+        {"path": "dummy_test_chunk_1.wav", "offset": 600.0},
     ]
 
     segments = transcribe_all(wav_chunks, language="english")

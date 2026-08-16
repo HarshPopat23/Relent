@@ -35,6 +35,8 @@ reels/*.json
 
 temp/
 *.tmp
+*.wav.*.json
+chunk_*.json
 
 # Vector Store & AI Models
 vector_db/*

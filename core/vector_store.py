@@ -1,3 +1,8 @@
+"""Relent AI - Vector Store & Embeddings Engine.
+
+Manages local Chroma vector database indexing and similarity retrieval.
+"""
+
 import os
 import sys
 
@@ -19,11 +24,6 @@ def safe_print(text: str = "") -> None:
         except Exception:
             pass
 
-
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
-from langchain_core.retrievers import BaseRetriever
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 CHROMA_DIR = "vector_db"
 COLLECTION_NAME = "meeting_transcript"
@@ -50,8 +50,11 @@ def get_embeddings():
     )
 
 
-def build_vector_store(transcript: str) -> Chroma:
+def build_vector_store(transcript: str):
     """Create and persist a Chroma vector store from a transcript."""
+    from langchain_chroma import Chroma
+    from langchain_core.documents import Document
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
     safe_print("Building vector store...")
 
@@ -95,8 +98,9 @@ def build_vector_store(transcript: str) -> Chroma:
     return vector_store
 
 
-def load_vector_store() -> Chroma:
+def load_vector_store():
     """Load an existing Chroma vector store."""
+    from langchain_chroma import Chroma
 
     embeddings = get_embeddings()
 
@@ -110,11 +114,10 @@ def load_vector_store() -> Chroma:
 
 
 def get_retriever(
-    vector_store: Chroma,
+    vector_store,
     k: int = 4,
-) -> BaseRetriever:
+):
     """Return a retriever for similarity search."""
-
     return vector_store.as_retriever(
         search_type="similarity",
         search_kwargs={"k": k},

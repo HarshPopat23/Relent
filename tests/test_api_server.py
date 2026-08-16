@@ -70,9 +70,9 @@ def test_api_download_endpoints(client=None, sample_pipeline_result=None):
     if client is None:
         client = TestClient(app)
     if sample_pipeline_result is None:
-        from tests.conftest import sample_pipeline_result as spr
+        from tests.conftest import get_sample_pipeline_result
 
-        sample_pipeline_result = spr()
+        sample_pipeline_result = get_sample_pipeline_result()
 
     # Temporarily set mock result in session
     session_state["result"] = sample_pipeline_result
