@@ -20,7 +20,7 @@ services:
       - "8501:8501"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=qwen2.5-coder:3b
+      - OLLAMA_MODEL=qwen2.5:3b-instruct
       - WHISPER_MODEL=small
     volumes:
       - ./downloads:/app/downloads

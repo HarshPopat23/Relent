@@ -13,7 +13,7 @@ Checks backend status, connected LLM model, and active video state.
 ```json
 {
   "status": "online",
-  "model": "qwen2.5-coder:3b",
+  "model": "qwen2.5:3b-instruct",
   "base_url": "http://localhost:11434",
   "has_active_video": true
 }

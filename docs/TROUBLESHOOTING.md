@@ -6,7 +6,7 @@ This guide provides solutions to common issues encountered during setup, video i
 
 ## 🛠️ Common Issues & Resolutions
 
-### 1. `Ollama connection refused` or `Model 'qwen2.5-coder:3b' not found`
+### 1. `Ollama connection refused` or `Model 'qwen2.5:3b-instruct' not found`
 
 **Symptoms:**
 - Error trace showing `HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded`.
@@ -19,9 +19,9 @@ This guide provides solutions to common issues encountered during setup, video i
    ```
 2. Pull the required model:
    ```bash
-   ollama pull qwen2.5-coder:3b
+   ollama pull qwen2.5:3b-instruct
    ```
-3. Check that your `.env` file specifies `OLLAMA_MODEL=qwen2.5-coder:3b` and `OLLAMA_BASE_URL=http://localhost:11434`.
+3. Check that your `.env` file specifies `OLLAMA_MODEL=qwen2.5:3b-instruct` and `OLLAMA_BASE_URL=http://localhost:11434`.
 
 ---
 
@@ -68,7 +68,7 @@ This guide provides solutions to common issues encountered during setup, video i
    ```
 2. For Ollama LLMs, select a smaller quantized model:
    ```dotenv
-   OLLAMA_MODEL=qwen2.5-coder:1.5b
+   OLLAMA_MODEL=qwen2.5:1.5b
    ```
 3. Set CPU fallback in `.env`:
    ```dotenv
@@ -97,7 +97,7 @@ This guide provides solutions to common issues encountered during setup, video i
 **A:** No! All transcription (Whisper), embedding generation (`all-MiniLM-L6-v2`), vector indexing (Chroma), and LLM reasoning (Ollama) run 100% locally on your hardware.
 
 ### Q: Can I run Relent AI without a GPU?
-**A:** Yes. Whisper `small` or `base` and Ollama models like `qwen2.5-coder:3b` or `llama3.2:3b` run efficiently on modern multi-core CPUs.
+**A:** Yes. Whisper `small` or `base` and Ollama models like `qwen2.5:3b-instruct` or `llama3.2:3b` run efficiently on modern multi-core CPUs.
 
 ### Q: How do I export intelligence reports?
 **A:** Via the CLI using `--output report.md`, via the React UI export toolbar (PDF, Markdown, TXT), or via the REST endpoint `/api/download/pdf`.

@@ -64,7 +64,7 @@ pip install -e ".[dev]"
 cp .env.example .env
 
 # 5. Pull local Ollama model
-ollama pull qwen2.5-coder:3b
+ollama pull qwen2.5:3b-instruct
 ```
 
 ### 3. Frontend Setup

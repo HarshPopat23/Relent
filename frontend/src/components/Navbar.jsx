@@ -48,7 +48,7 @@ export default function Navbar({ backendStatus }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div className="badge-neon badge-purple" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Cpu size={14} />
-          <span>LLM: {backendStatus?.model || 'qwen2.5-coder:3b'}</span>
+          <span>LLM: {backendStatus?.model || 'qwen2.5:3b-instruct'}</span>
         </div>
 
         <div className="badge-neon badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

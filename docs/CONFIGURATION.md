@@ -10,7 +10,7 @@ Relent AI connects to any model hosted on your local [Ollama](https://ollama.com
 
 | Model | Size | Recommended RAM/VRAM | Strengths | Speed |
 | :--- | :--- | :--- | :--- | :--- |
-| **`qwen2.5:3b`** *(Recommended)* | 1.9 GB | 4 GB | High instruction following, fast summarization, minimal memory footprint | ⚡⚡⚡⚡⚡ (Fastest) |
+| **`qwen2.5:3b-instruct`** *(Recommended)* | 1.9 GB | 4 GB | High instruction following, fast summarization, minimal memory footprint | ⚡⚡⚡⚡⚡ (Fastest) |
 | **`qwen2.5:7b-instruct`** | 4.7 GB | 8 GB | Superior reasoning, detailed meeting summaries, nuanced question answering | ⚡⚡⚡⚡ (High Quality) |
 | **`llama3.2:3b`** | 2.0 GB | 4 GB | Lightweight, concise summaries, 128k context support | ⚡⚡⚡⚡⚡ |
 | **`llama3.1:8b`** | 4.9 GB | 8 GB | Robust semantic understanding and complex multi-turn RAG chat | ⚡⚡⚡ |
@@ -18,7 +18,7 @@ Relent AI connects to any model hosted on your local [Ollama](https://ollama.com
 
 To switch models, set `OLLAMA_MODEL` in `.env`:
 ```ini
-OLLAMA_MODEL=qwen2.5:3b
+OLLAMA_MODEL=qwen2.5:3b-instruct
 ```
 
 ---
