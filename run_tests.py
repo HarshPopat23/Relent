@@ -50,9 +50,17 @@ from tests.test_summarizer import (
     test_split_transcript,
     test_summarizer_empty_guards,
 )
+from tests.test_llm import (
+    test_default_models,
+    test_get_llm_fallback_on_primary_failure,
+    test_get_llm_hindi_specialization,
+    test_get_llm_primary_success,
+    test_is_indic_language,
+)
 from tests.test_transcriber import (
     test_segments_to_text_concatenation,
     test_segments_to_text_empty,
+    test_transcribe_chunk_language_routing,
     test_unload_transcribers,
 )
 from tests.test_video_clipper import (
@@ -77,6 +85,12 @@ def run_all_tests():
         ("test_download_dir_exists", lambda: test_download_dir_exists()),
         ("test_ensure_ffmpeg", lambda: test_ensure_ffmpeg()),
         ("test_convert_to_wav_missing_file", lambda: test_convert_to_wav_missing_file()),
+        # LLM Engine & Fallback
+        ("test_default_models", lambda: test_default_models()),
+        ("test_is_indic_language", lambda: test_is_indic_language()),
+        ("test_get_llm_primary_success", lambda: test_get_llm_primary_success()),
+        ("test_get_llm_fallback_on_primary_failure", lambda: test_get_llm_fallback_on_primary_failure()),
+        ("test_get_llm_hindi_specialization", lambda: test_get_llm_hindi_specialization()),
         # Transcriber
         (
             "test_segments_to_text_concatenation",
@@ -84,6 +98,7 @@ def run_all_tests():
         ),
         ("test_segments_to_text_empty", lambda: test_segments_to_text_empty()),
         ("test_unload_transcribers", lambda: test_unload_transcribers()),
+        ("test_transcribe_chunk_language_routing", lambda: test_transcribe_chunk_language_routing()),
         # Summarizer
         ("test_split_transcript", lambda: test_split_transcript()),
         ("test_summarizer_empty_guards", lambda: test_summarizer_empty_guards()),

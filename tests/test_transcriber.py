@@ -125,3 +125,28 @@ def test_transcribe_all(mock_transcribe, mock_open, mock_exists):
     segments = transcribe_all(wav_chunks, language="english")
     assert len(segments) == 2
     assert mock_transcribe.call_count == 2
+
+
+@patch("core.transcriber.transcribe_chunk_indicwhisper")
+@patch("core.transcriber.transcribe_chunk_whisper")
+def test_transcribe_chunk_language_routing(mock_whisper, mock_indic):
+    """Verify transcribe_chunk routes Indic/Hindi languages to IndicWhisper and others to Whisper large-v3."""
+    from core.transcriber import transcribe_chunk
+
+    mock_indic.return_value = [{"text": "Indic text"}]
+    mock_whisper.return_value = [{"text": "English text"}]
+
+    # Hindi / Hinglish / Indic routing
+    res_hinglish = transcribe_chunk("chunk.wav", 0.0, language="hinglish")
+    res_hindi = transcribe_chunk("chunk.wav", 0.0, language="hindi")
+    res_marathi = transcribe_chunk("chunk.wav", 0.0, language="marathi")
+
+    assert mock_indic.call_count == 3
+    assert res_hinglish[0]["text"] == "Indic text"
+
+    # English / Global routing
+    res_english = transcribe_chunk("chunk.wav", 0.0, language="english")
+    res_spanish = transcribe_chunk("chunk.wav", 0.0, language="spanish")
+
+    assert mock_whisper.call_count == 2
+    assert res_english[0]["text"] == "English text"

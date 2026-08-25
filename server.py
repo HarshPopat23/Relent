@@ -16,9 +16,12 @@ if hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
 
-load_dotenv()
+    load_dotenv()
+except ImportError:
+    pass
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
@@ -39,7 +42,9 @@ session_state = {
     "last_reel": None,
 }
 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:72b-instruct-q4_K_M")
+OLLAMA_FALLBACK_MODEL = os.getenv("OLLAMA_FALLBACK_MODEL", os.getenv("SARVAM_MODEL", "sarvam-m"))
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
@@ -128,6 +133,8 @@ async def api_health(request):
         {
             "status": "online",
             "model": OLLAMA_MODEL,
+            "fallback_model": OLLAMA_FALLBACK_MODEL,
+            "whisper_model": WHISPER_MODEL,
             "base_url": OLLAMA_BASE_URL,
             "has_active_video": session_state["result"] is not None,
         }

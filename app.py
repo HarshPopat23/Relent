@@ -15,9 +15,12 @@ if hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
 
-load_dotenv()
+    load_dotenv()
+except ImportError:
+    pass
 
 import streamlit as st
 from reportlab.lib.pagesizes import A4
@@ -160,8 +163,13 @@ else:
     )
 
 language = st.selectbox(
-    "Language",
-    ["english", "hinglish"],
+    "Transcription Engine & Language",
+    ["english", "hinglish", "hindi"],
+    format_func=lambda x: {
+        "english": "Whisper Large-v3 (English / Global)",
+        "hinglish": "AI4Bharat IndicWhisper (Hinglish)",
+        "hindi": "AI4Bharat IndicWhisper (Hindi / Indic)",
+    }.get(x, x),
 )
 
 # ----------------------------
