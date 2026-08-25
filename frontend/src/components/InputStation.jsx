@@ -247,8 +247,9 @@ export default function InputStation({ onProcess, isProcessing }) {
                 cursor: 'pointer',
               }}
             >
-              <option value="english">Whisper Small (English / Global)</option>
+              <option value="english">Whisper Large-v3 (English / Global)</option>
               <option value="hinglish">AI4Bharat IndicWhisper (Hinglish)</option>
+              <option value="hindi">AI4Bharat IndicWhisper (Hindi / Indic)</option>
             </select>
           </div>
 

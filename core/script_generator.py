@@ -22,30 +22,24 @@ def safe_print(text: str = "") -> None:
             pass
 
 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:72b-instruct-q4_K_M")
+OLLAMA_FALLBACK_MODEL = os.getenv("OLLAMA_FALLBACK_MODEL", os.getenv("SARVAM_MODEL", "sarvam-m"))
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
-def get_llm():
-    from langchain_ollama import ChatOllama
+def get_llm(model: str | None = None, language: str | None = None, **kwargs):
+    from core.llm import get_llm as centralized_get_llm
 
     # temperature=0 for maximum consistency picking IDs; format="json" forces
-    # Ollama to constrain output to valid JSON instead of hoping the model
-    # follows the "only a JSON array" instruction on its own.
-    kwargs = {
-        "model": OLLAMA_MODEL,
-        "base_url": OLLAMA_BASE_URL,
-        "temperature": 0,
-        "format": "json",
-    }
-    num_gpu = os.getenv("OLLAMA_NUM_GPU")
-    if num_gpu is not None and num_gpu != "":
-        try:
-            kwargs["num_gpu"] = int(num_gpu)
-        except ValueError:
-            pass
-
-    return ChatOllama(**kwargs)
+    # Ollama to constrain output to valid JSON
+    return centralized_get_llm(
+        model=model or OLLAMA_MODEL,
+        fallback_model=OLLAMA_FALLBACK_MODEL,
+        language=language,
+        temperature=kwargs.get("temperature", 0),
+        format=kwargs.get("format", "json"),
+        **{k: v for k, v in kwargs.items() if k not in ("temperature", "format")},
+    )
 
 
 # The LLM never writes new text — it only picks segment IDs. This is what

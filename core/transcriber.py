@@ -28,7 +28,7 @@ def safe_print(text: str = "") -> None:
             pass
 
 
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3")
 WHISPER_BACKEND = os.getenv(
     "WHISPER_BACKEND", "auto"
 ).lower()  # "auto", "faster-whisper", "whisper"
@@ -39,6 +39,22 @@ WHISPER_COMPUTE_TYPE = os.getenv(
 # Path or HF repo id of your installed IndicWhisper checkpoint
 INDICWHISPER_MODEL = os.getenv("INDICWHISPER_MODEL", "ai4bharat/indicwhisper")
 INDICWHISPER_DEVICE = os.getenv("INDICWHISPER_DEVICE", "")
+
+# Supported Indic languages for automatic routing to IndicWhisper
+INDIC_LANGUAGES = {
+    "hinglish",
+    "hindi",
+    "indic",
+    "bengali",
+    "marathi",
+    "telugu",
+    "tamil",
+    "gujarati",
+    "kannada",
+    "malayalam",
+    "odia",
+    "punjabi",
+}
 
 _model_entry = None
 _indicwhisper_pipe = None
@@ -231,8 +247,8 @@ def transcribe_chunk(
     chunk_offset: float,
     language: str = "english",
 ) -> list[dict]:
-    """Route transcription to Faster-Whisper or IndicWhisper based on selected language."""
-    if language.lower() == "hinglish":
+    """Route transcription to Faster-Whisper (large-v3) or IndicWhisper based on selected language."""
+    if language.lower() in INDIC_LANGUAGES:
         return transcribe_chunk_indicwhisper(chunk_path, chunk_offset)
 
     return transcribe_chunk_whisper(chunk_path, chunk_offset)
@@ -259,7 +275,8 @@ def transcribe_all(
     language: str = "english",
 ) -> list[dict]:
     """Transcribe all audio chunks and return one flat, time-ordered list of segments."""
-    engine = "IndicWhisper" if language.lower() == "hinglish" else "Faster-Whisper"
+    is_indic = language.lower() in INDIC_LANGUAGES
+    engine = "IndicWhisper" if is_indic else f"Faster-Whisper ({WHISPER_MODEL})"
 
     safe_print(f"Using {engine} for transcription.")
 

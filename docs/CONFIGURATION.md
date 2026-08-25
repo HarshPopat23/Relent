@@ -10,37 +10,40 @@ Relent AI connects to any model hosted on your local [Ollama](https://ollama.com
 
 | Model | Size | Recommended RAM/VRAM | Strengths | Speed |
 | :--- | :--- | :--- | :--- | :--- |
-| **`qwen2.5:3b-instruct`** *(Recommended)* | 1.9 GB | 4 GB | High instruction following, fast summarization, minimal memory footprint | ⚡⚡⚡⚡⚡ (Fastest) |
-| **`qwen2.5:7b-instruct`** | 4.7 GB | 8 GB | Superior reasoning, detailed meeting summaries, nuanced question answering | ⚡⚡⚡⚡ (High Quality) |
+| **`qwen2.5:72b-instruct-q4_K_M`** *(Primary Default)* | ~42 GB | 40-48 GB | Elite reasoning, deep tone-matching, rigorous structured extraction | ⚡⚡⚡ (SOTA Quality) |
+| **`sarvam-m`** *(Hindi-Specialized Fallback)* | ~2.5 GB | 4 GB | Specialized Indian languages / Hindi foundation model & failover | ⚡⚡⚡⚡⚡ (Fast) |
+| **`qwen2.5:7b-instruct`** | 4.7 GB | 8 GB | Superior reasoning, detailed meeting summaries, nuanced question answering | ⚡⚡⚡⚡ |
 | **`llama3.2:3b`** | 2.0 GB | 4 GB | Lightweight, concise summaries, 128k context support | ⚡⚡⚡⚡⚡ |
 | **`llama3.1:8b`** | 4.9 GB | 8 GB | Robust semantic understanding and complex multi-turn RAG chat | ⚡⚡⚡ |
 | **`mistral:7b`** | 4.1 GB | 8 GB | Strong general reasoning and action extraction | ⚡⚡⚡ |
 
-To switch models, set `OLLAMA_MODEL` in `.env`:
+To switch models, set `OLLAMA_MODEL` and `OLLAMA_FALLBACK_MODEL` in `.env`:
 ```ini
-OLLAMA_MODEL=qwen2.5:3b-instruct
+OLLAMA_MODEL=qwen2.5:72b-instruct-q4_K_M
+OLLAMA_FALLBACK_MODEL=sarvam-m
 ```
 
 ---
 
-## 2. Faster-Whisper Speech-to-Text & Quantization
+## 2. Faster-Whisper Speech-to-Text & Language Routing
 
-Relent AI defaults to **Faster-Whisper (CTranslate2)** with 8-bit `int8` quantization for up to **6x faster transcription** and ~50% reduced RAM footprint compared to standard PyTorch Whisper.
+Relent AI defaults to **Whisper Large-v3** + **AI4Bharat IndicWhisper** with intelligent language routing and 8-bit `int8`/`float16` quantization for high-precision multilingual transcription.
 
 | Model Checkpoint | Parameters | Required VRAM / RAM | Relative Speed | Word Error Rate (WER) |
 | :--- | :--- | :--- | :--- | :--- |
-| `tiny` | 39 M | ~0.5 GB | ~15x | Moderate |
-| `base` | 74 M | ~0.7 GB | ~10x | Good |
-| **`small`** *(Default)* | 244 M | ~1.0 GB | **~6x (int8)** | **Optimal Balance** |
-| `medium` | 769 M | ~2.5 GB | ~3x | High Accuracy |
+| **`large-v3`** *(Default)* | 1550 M | ~4.5 GB | **High Precision** | **Highest Accuracy** |
 | `large-v3-turbo` | 808 M | ~2.0 GB | ~4x | Maximum Accuracy |
-| `large-v3` | 1550 M | ~4.5 GB | 1x | Highest Precision |
+| `medium` | 769 M | ~2.5 GB | ~3x | High Accuracy |
+| `small` | 244 M | ~1.0 GB | ~6x (int8) | Fast |
+| `base` | 74 M | ~0.7 GB | ~10x | Good |
+| `tiny` | 39 M | ~0.5 GB | ~15x | Moderate |
 
 Configure backend and compute quantization in `.env`:
 ```ini
-WHISPER_MODEL=small
+WHISPER_MODEL=large-v3
 WHISPER_BACKEND=auto         # Options: auto, faster-whisper, whisper
 WHISPER_COMPUTE_TYPE=int8    # Options: int8 (CPU default), float16 (CUDA default), int8_float16
+INDICWHISPER_MODEL=ai4bharat/indicwhisper
 ```
 
 ---

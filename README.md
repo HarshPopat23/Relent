@@ -31,8 +31,8 @@
 | Capability | Description |
 | :--- | :--- |
 | 📥 **Universal Ingestion** | One-click processing for **YouTube links**, local audio/video files (`.mp4`, `.mov`, `.mkv`, `.mp3`, `.wav`), or drag-and-drop web uploads. |
-| 🎙️ **Multi-Engine Transcription** | High-precision speech-to-text with OpenAI Whisper (`small`, `base`, `large-v3`) and AI4Bharat IndicWhisper for Hinglish. |
-| 🧠 **Hierarchical Intelligence** | Map-Reduce pipeline that produces concise overviews, key takeaways, task action items (with assignees & deadlines), and open questions. |
+| 🎙️ **Multi-Engine Transcription** | Language-routed transcription powered by **Whisper Large-v3** and **AI4Bharat IndicWhisper** for Hindi / Hinglish / Indic languages. |
+| 🧠 **Hierarchical Intelligence** | Reasoning and tone-matching powered by **Qwen2.5-72B (4-bit)** as primary LLM, backed by **Sarvam-M** as Hindi-specialized fallback. |
 | 💬 **Interactive RAG Terminal** | Ask questions and chat directly with your video using semantic vector retrieval without hallucination. |
 | 🎬 **AI Reel Studio** | Automatically cuts, trims, and concatenates exact video segments matching user prompt duration (e.g. *"2-minute product summary reel"*). |
 | 📄 **Multi-Format Export** | Download intelligence reports in **PDF**, **Markdown**, or plain text formats. |

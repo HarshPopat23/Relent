@@ -33,10 +33,13 @@ def safe_print(text: str = "") -> None:
             pass
 
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
 
-# IMPORTANT: load_dotenv() must run BEFORE the core.* imports below.
-load_dotenv()
+    # IMPORTANT: load_dotenv() must run BEFORE the core.* imports below.
+    load_dotenv()
+except ImportError:
+    pass
 
 from core import __version__
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions

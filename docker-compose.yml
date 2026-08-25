@@ -20,8 +20,9 @@ services:
       - "8501:8501"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=qwen2.5:3b-instruct
-      - WHISPER_MODEL=small
+      - OLLAMA_MODEL=qwen2.5:72b-instruct-q4_K_M
+      - OLLAMA_FALLBACK_MODEL=sarvam-m
+      - WHISPER_MODEL=large-v3
     volumes:
       - ./downloads:/app/downloads
       - ./clips:/app/clips
