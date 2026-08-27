@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sys
 
@@ -96,19 +97,55 @@ def download_youtube_video(url: str) -> str:
     return video_path
 
 
+MEDIA_ROOT = os.getenv("RELENT_MEDIA_ROOT", os.getcwd())
+
+
+def _get_media_root() -> str:
+    """Return validated absolute media root configured via RELENT_MEDIA_ROOT."""
+    raw_root = os.getenv("RELENT_MEDIA_ROOT", os.getcwd())
+    if not raw_root or not raw_root.strip():
+        raise ValueError("RELENT_MEDIA_ROOT must be configured for local file paths.")
+    root = os.path.realpath(os.path.abspath(raw_root.strip()))
+    if not os.path.isdir(root):
+        raise ValueError("RELENT_MEDIA_ROOT does not exist or is not a directory.")
+    return root
+
+
+def _sanitize_audio_path(file_path: str) -> str:
+    """Validate and normalize local media path to prevent path traversal / injection."""
+    if not isinstance(file_path, str) or not file_path.strip():
+        raise ValueError("Invalid file path.")
+    candidate = file_path.strip()
+    if candidate.startswith("-"):
+        raise ValueError("Invalid file path.")
+    if any(ch in candidate for ch in ("\x00", "\n", "\r")):
+        raise ValueError("Invalid file path.")
+
+    media_root = _get_media_root()
+    resolved_path = os.path.realpath(os.path.abspath(candidate))
+    try:
+        if os.path.commonpath([media_root, resolved_path]) != media_root:
+            raise ValueError("File path is outside the allowed media directory.")
+    except ValueError as err:
+        raise ValueError("File path is outside the allowed media directory.") from err
+    return resolved_path
+
+
 def convert_to_wav(input_path: str) -> str:
     """Convert any local audio/video file to mono 16 kHz WAV (for transcription only)."""
-    if not os.path.exists(input_path):
+    safe_input_path = _sanitize_audio_path(input_path)
+    if not os.path.isfile(safe_input_path):
         raise FileNotFoundError(f"Local file not found: {input_path}")
 
-    output_path = os.path.splitext(input_path)[0] + "_converted.wav"
-    if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+    path_hash = hashlib.sha256(safe_input_path.encode("utf-8")).hexdigest()[:16]
+    output_path = os.path.join(DOWNLOAD_DIR, f"audio_{path_hash}_converted.wav")
+    if os.path.isfile(output_path) and os.path.getsize(output_path) > 0:
         return output_path
 
     _ensure_ffmpeg()
     from pydub import AudioSegment
 
-    audio = AudioSegment.from_file(input_path)
+    audio = AudioSegment.from_file(safe_input_path)
     audio = audio.set_channels(1).set_frame_rate(16000)
     audio.export(output_path, format="wav")
 
@@ -120,17 +157,22 @@ def chunk_audio_with_offsets(wav_path: str, chunk_minutes: int = 10) -> list[dic
     within the FULL audio. This offset is what lets us convert a Whisper timestamp
     (which is relative to the chunk) back into a timestamp relative to the whole video.
     """
+    safe_wav_path = _sanitize_audio_path(wav_path)
+    if not os.path.isfile(safe_wav_path):
+        raise FileNotFoundError(f"WAV file not found: {wav_path}")
+
     _ensure_ffmpeg()
     from pydub import AudioSegment
 
-    audio = AudioSegment.from_wav(wav_path)
+    audio = AudioSegment.from_wav(safe_wav_path)
     chunk_ms = chunk_minutes * 60 * 1000
+    wav_hash = hashlib.sha256(safe_wav_path.encode("utf-8")).hexdigest()[:16]
 
     chunks = []
 
     for i, start in enumerate(range(0, len(audio), chunk_ms)):
-        chunk_path = f"{wav_path}_chunk_{i}.wav"
-        if not os.path.exists(chunk_path) or os.path.getsize(chunk_path) == 0:
+        chunk_path = os.path.join(DOWNLOAD_DIR, f"chunk_{wav_hash}_{i}.wav")
+        if not (os.path.isfile(chunk_path) and os.path.getsize(chunk_path) > 0):
             chunk = audio[start : start + chunk_ms]
             chunk.export(chunk_path, format="wav")
         chunks.append({"path": chunk_path, "offset": start / 1000.0})

@@ -5,8 +5,10 @@ with dynamic GPU auto-detection and fallback to standard Whisper and IndicWhispe
 """
 
 import gc
+import hashlib
 import json
 import os
+import re
 import sys
 
 # Ensure UTF-8 output
@@ -270,6 +272,19 @@ def unload_transcribers():
         pass
 
 
+CACHE_DIR = "transcripts_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+MEDIA_ROOT = os.path.realpath(os.path.abspath(os.getenv("RELENT_MEDIA_ROOT", os.getcwd())))
+
+
+def _sanitize_cache_path(chunk_path: str, language: str) -> str:
+    """Generate a safe, hash-based transcript cache path within CACHE_DIR."""
+    raw_chunk = str(chunk_path).strip()
+    safe_lang = re.sub(r"[^a-zA-Z0-9_-]", "", str(language)) or "default"
+    chunk_hash = hashlib.sha256(raw_chunk.encode("utf-8")).hexdigest()[:16]
+    return os.path.join(CACHE_DIR, f"transcript_{chunk_hash}_{safe_lang}.json")
+
+
 def transcribe_all(
     wav_chunks: list[dict],
     language: str = "english",
@@ -284,8 +299,16 @@ def transcribe_all(
     total_chunks = len(wav_chunks)
 
     for i, chunk in enumerate(wav_chunks, start=1):
-        cache_file = f"{chunk['path']}.{language}.json"
-        if os.path.exists(cache_file):
+        raw_chunk_path = str(chunk.get("path", "")).strip()
+        if not raw_chunk_path:
+            continue
+        try:
+            cache_file = _sanitize_cache_path(raw_chunk_path, language)
+            safe_chunk_path = os.path.realpath(os.path.abspath(raw_chunk_path))
+        except ValueError:
+            continue
+
+        if os.path.isfile(cache_file):
             try:
                 with open(cache_file, encoding="utf-8") as f:
                     segments = json.load(f)
@@ -298,7 +321,7 @@ def transcribe_all(
         safe_print(f"Transcribing chunk {i}/{total_chunks}...")
 
         segments = transcribe_chunk(
-            chunk["path"],
+            safe_chunk_path,
             chunk["offset"],
             language=language,
         )
