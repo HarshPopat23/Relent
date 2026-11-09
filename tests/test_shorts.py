@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+import wave
 from array import array
 from io import BytesIO
 from pathlib import Path
@@ -384,14 +385,23 @@ def test_local_transcription_skips_groq_audio_upload(tmp_path, monkeypatch):
                 "download_root": str(tmp_path / ".whisper-cache"),
             }
 
-        def transcribe(self, path, *, word_timestamps):
-            assert path == str(work / "input.video")
+        def transcribe(self, samples, *, word_timestamps):
+            assert samples.dtype.name == "float32"
+            assert samples.tolist() == [0, 0]
             assert word_timestamps
             return iter([segment]), None
 
     def unexpected_upload(*args, **kwargs):
         pytest.fail("Local transcription attempted a Groq audio upload")
 
+    def decode(command, cwd):
+        assert command[-1] == "local.wav"
+        with wave.open(str(cwd / "local.wav"), "wb") as pcm:
+            pcm.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+            pcm.writeframes(b"\x00" * 4)
+
+    pytest.importorskip("numpy")
+    monkeypatch.setattr(shorts, "_run", decode)
     monkeypatch.setenv("RELENT_TRANSCRIPTION_BACKEND", "local")
     monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=Model))
     monkeypatch.setattr(shorts, "_groq_post", unexpected_upload)

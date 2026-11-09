@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import wave
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -190,20 +191,44 @@ def _groq_post(key: str, endpoint: str, **kwargs) -> dict:
 
 def _transcribe_locally(work: Path, duration: float) -> list[Word]:
     try:
+        import numpy as np
         from faster_whisper import WhisperModel
     except ImportError as exc:
         raise ShortsError(
             "Local transcription requires faster-whisper. Install it and restart Relent."
         ) from exc
 
+    # Use the Studio's existing FFmpeg to decode to Whisper's input format.
+    # Passing PCM samples also avoids PyAV version differences in file decoding.
+    _run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-i",
+            "input.video",
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-c:a",
+            "pcm_s16le",
+            "local.wav",
+        ],
+        work,
+    )
     try:
+        with wave.open(str(work / "local.wav"), "rb") as pcm:
+            samples = np.frombuffer(pcm.readframes(pcm.getnframes()), dtype="<i2")
         model = WhisperModel(
             "base",
             device="cpu",
             compute_type="int8",
             download_root=str(work.parent / ".whisper-cache"),
         )
-        segments, _ = model.transcribe(str(work / "input.video"), word_timestamps=True)
+        segments, _ = model.transcribe(samples.astype(np.float32) / 32768, word_timestamps=True)
         words = []
         for segment in segments:
             for entry in segment.words or []:
