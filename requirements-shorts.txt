@@ -1,0 +1,7 @@
+# Lightweight dependencies for the local Shorts Studio.
+yt-dlp[default]>=2026.1.1
+requests>=2.31.0
+python-dotenv>=1.0.1
+reportlab>=4.1.0
+starlette>=0.39.0
+uvicorn>=0.29.0
