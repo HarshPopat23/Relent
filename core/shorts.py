@@ -14,7 +14,7 @@ from urllib.parse import parse_qs, urlsplit
 import requests
 
 GROQ_URL = "https://api.groq.com/openai/v1"
-AUDIO_CHUNK = 300
+AUDIO_CHUNK = 60
 MAX_SOURCE_SECONDS = 30 * 60
 SHORT_COUNT = 10
 MIN_CLIP_SECONDS = 15
@@ -145,16 +145,31 @@ def _download(url: str, work: Path) -> None:
 
 
 def _groq_post(key: str, endpoint: str, **kwargs) -> dict:
-    try:
-        response = requests.post(
-            GROQ_URL + endpoint,
-            headers={"Authorization": f"Bearer {key}"},
-            timeout=(15, 120),
-            allow_redirects=False,
-            **kwargs,
-        )
-    except requests.RequestException as exc:
-        raise ShortsError("Could not connect to Groq. Check your internet connection.") from exc
+    transcribing = endpoint == "/audio/transcriptions"
+    stage = "audio upload" if transcribing else "clip selection"
+    attempts = 2 if transcribing else 1
+    for attempt in range(attempts):
+        try:
+            if transcribing:
+                kwargs["files"]["file"][1].seek(0)
+            response = requests.post(
+                GROQ_URL + endpoint,
+                headers={"Authorization": f"Bearer {key}"},
+                timeout=(30, 120),
+                allow_redirects=False,
+                **kwargs,
+            )
+            break
+        except requests.exceptions.SSLError as exc:
+            raise ShortsError(f"Groq {stage} failed TLS certificate verification.") from exc
+        except requests.ConnectionError as exc:
+            if attempt + 1 == attempts:
+                raise ShortsError(
+                    f"Groq {stage} lost its connection ({type(exc).__name__}). "
+                    "Try again on a stable connection."
+                ) from exc
+        except requests.RequestException as exc:
+            raise ShortsError(f"Groq {stage} failed ({type(exc).__name__}).") from exc
 
     if response.status_code == 429:
         raise ShortsError("Groq's rate limit was reached. Wait for your quota to reset and retry.")
@@ -195,16 +210,18 @@ def _transcribe(key: str, work: Path, duration: float) -> list[Word]:
                 "-ac",
                 "1",
                 "-c:a",
-                "flac",
-                "audio.flac",
+                "libmp3lame",
+                "-b:a",
+                "32k",
+                "audio.mp3",
             ],
             work,
         )
-        with (work / "audio.flac").open("rb") as audio:
+        with (work / "audio.mp3").open("rb") as audio:
             result = _groq_post(
                 key,
                 "/audio/transcriptions",
-                files={"file": ("audio.flac", audio, "audio/flac")},
+                files={"file": ("audio.mp3", audio, "audio/mpeg")},
                 data={
                     "model": os.getenv("GROQ_TRANSCRIPTION_MODEL") or "whisper-large-v3-turbo",
                     "response_format": "verbose_json",

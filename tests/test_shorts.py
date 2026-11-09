@@ -2,6 +2,7 @@ import json
 import shutil
 import subprocess
 from array import array
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -141,17 +142,26 @@ def test_api_produces_ten_captioned_shorts_with_original_audio(tmp_path, monkeyp
         assert url == VIDEO
         shutil.copyfile(source, work / "input.video")
 
+    offsets = iter(range(0, 215, shorts.AUDIO_CHUNK))
+
     def post(url, *, headers, allow_redirects, timeout, **kwargs):
         assert headers == {"Authorization": "Bearer fixture-key"}
         assert allow_redirects is False and timeout
         if url.endswith("/audio/transcriptions"):
             assert kwargs["data"]["timestamp_granularities[]"] == "word"
-            audio = kwargs["files"]["file"][1]
-            assert audio.read(4) == b"fLaC"
+            filename, audio, mime = kwargs["files"]["file"]
+            assert (filename, mime) == ("audio.mp3", "audio/mpeg")
+            assert audio.read(3) == b"ID3"
+            assert Path(audio.name).stat().st_size < 250_000
+            offset = next(offsets)
             result = {
                 "words": [
-                    {"word": "sentence." if i % 16 == 15 else "word", "start": i, "end": i + 0.9}
-                    for i in range(215)
+                    {
+                        "word": "sentence." if (offset + i) % 16 == 15 else "word",
+                        "start": i,
+                        "end": i + 0.9,
+                    }
+                    for i in range(min(shorts.AUDIO_CHUNK, 215 - offset))
                 ]
             }
         else:
@@ -331,3 +341,22 @@ def test_reports_html_media_response(tmp_path, monkeypatch, merge_failed):
     with pytest.raises(shorts.ShortsError, match="returned a web page"):
         shorts._download(VIDEO, tmp_path)
     assert not (tmp_path / "input.video").exists()
+
+
+def test_groq_audio_upload_retries_once_with_the_complete_body(monkeypatch):
+    payload = b"test audio"
+    audio = BytesIO(payload)
+    attempts = []
+
+    def post(url, **kwargs):
+        attempts.append(kwargs["files"]["file"][1].read())
+        if len(attempts) == 1:
+            raise shorts.requests.ConnectionError("fixture disconnect")
+        return SimpleNamespace(status_code=200, json=lambda: {"words": []})
+
+    monkeypatch.setattr(shorts.requests, "post", post)
+    result = shorts._groq_post(
+        "test", "/audio/transcriptions", files={"file": ("audio.mp3", audio, "audio/mpeg")}
+    )
+    assert attempts == [payload, payload]
+    assert result == {"words": []}
