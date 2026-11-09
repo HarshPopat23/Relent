@@ -84,3 +84,6 @@ error.log
 t.txt
 time.html
 video_notes_*.md
+
+# Shorts Studio output
+/shorts_output/

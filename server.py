@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 from io import BytesIO
+from pathlib import Path
 
 # Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, "reconfigure"):
@@ -30,10 +31,12 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse, JSONResponse, Response
-from starlette.routing import Route
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
 from core.rag_engine import ask_question
 from main import run_pipeline, run_reel_pipeline
+from shorts_api import shorts_routes
 
 # In-memory storage for active video session
 session_state = {
@@ -357,7 +360,19 @@ middleware = [
     )
 ]
 
+FRONTEND_DIST = Path(__file__).resolve().parent / "frontend" / "dist"
+
+
+async def frontend_page(request):
+    index = FRONTEND_DIST / "index.html"
+    if not index.is_file():
+        return Response("Build the frontend with npm ci and npm run build first.", status_code=503)
+    return FileResponse(index)
+
+
 routes = [
+    *shorts_routes,
+    Route("/shorts", frontend_page),
     Route("/api/health", api_health, methods=["GET"]),
     Route("/api/process", api_process, methods=["POST"]),
     Route("/api/chat", api_chat, methods=["POST"]),
@@ -365,6 +380,14 @@ routes = [
     Route("/api/download/{format}", api_download, methods=["GET"]),
     Route("/api/media/{folder}/{filename}", api_serve_media, methods=["GET"]),
 ]
+
+if (FRONTEND_DIST / "assets").is_dir():
+    routes.extend(
+        [
+            Route("/", frontend_page),
+            Mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets")),
+        ]
+    )
 
 app = Starlette(debug=True, routes=routes, middleware=middleware)
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import ShortsStudio from './components/ShortsStudio';
 import Navbar from './components/Navbar';
 import InputStation from './components/InputStation';
 import ProcessingHUD from './components/ProcessingHUD';
@@ -12,6 +13,12 @@ import ExportBar from './components/ExportBar';
 const API_BASE = 'http://127.0.0.1:8000';
 
 export default function App() {
+  return window.location.pathname.replace(/\/$/, '') === '/shorts'
+    ? <ShortsStudio />
+    : <VideoAnalysis />;
+}
+
+function VideoAnalysis() {
   const [backendStatus, setBackendStatus] = useState(null);
   const [result, setResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -170,6 +177,8 @@ export default function App() {
             </button>
           </div>
         )}
+
+        <a className="btn-cyber-secondary" href="/shorts">Open Shorts Studio</a>
 
         {/* Input Station */}
         <InputStation onProcess={handleProcessVideo} isProcessing={isProcessing} />
