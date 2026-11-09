@@ -360,3 +360,42 @@ def test_groq_audio_upload_retries_once_with_the_complete_body(monkeypatch):
     )
     assert attempts == [payload, payload]
     assert result == {"words": []}
+
+
+def test_local_transcription_skips_groq_audio_upload(tmp_path, monkeypatch):
+    import sys
+
+    work = tmp_path / "job"
+    work.mkdir()
+    segment = SimpleNamespace(
+        words=[
+            SimpleNamespace(start=14.0, end=15.5, word=" first "),
+            SimpleNamespace(start=19.0, end=21.0, word="last"),
+            SimpleNamespace(start=21.0, end=22.0, word="outside"),
+        ]
+    )
+
+    class Model:
+        def __init__(self, name, **kwargs):
+            assert name == "base"
+            assert kwargs == {
+                "device": "cpu",
+                "compute_type": "int8",
+                "download_root": str(tmp_path / ".whisper-cache"),
+            }
+
+        def transcribe(self, path, *, word_timestamps):
+            assert path == str(work / "input.video")
+            assert word_timestamps
+            return iter([segment]), None
+
+    def unexpected_upload(*args, **kwargs):
+        pytest.fail("Local transcription attempted a Groq audio upload")
+
+    monkeypatch.setenv("RELENT_TRANSCRIPTION_BACKEND", "local")
+    monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=Model))
+    monkeypatch.setattr(shorts, "_groq_post", unexpected_upload)
+    assert shorts._transcribe("test", work, 20) == [
+        shorts.Word(14, 15.5, "first"),
+        shorts.Word(19, 20, "last"),
+    ]

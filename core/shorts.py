@@ -188,7 +188,40 @@ def _groq_post(key: str, endpoint: str, **kwargs) -> dict:
     return result
 
 
+def _transcribe_locally(work: Path, duration: float) -> list[Word]:
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError as exc:
+        raise ShortsError(
+            "Local transcription requires faster-whisper. Install it and restart Relent."
+        ) from exc
+
+    try:
+        model = WhisperModel(
+            "base",
+            device="cpu",
+            compute_type="int8",
+            download_root=str(work.parent / ".whisper-cache"),
+        )
+        segments, _ = model.transcribe(str(work / "input.video"), word_timestamps=True)
+        words = []
+        for segment in segments:
+            for entry in segment.words or []:
+                text = " ".join(entry.word.split())
+                end = min(entry.end, duration)
+                if text and 0 <= entry.start < end:
+                    words.append(Word(entry.start, end, text))
+        return words
+    except Exception as exc:
+        raise ShortsError(
+            f"Local transcription failed ({type(exc).__name__}). "
+            "Check access to Hugging Face and the Shorts Studio output folder."
+        ) from exc
+
+
 def _transcribe(key: str, work: Path, duration: float) -> list[Word]:
+    if os.getenv("RELENT_TRANSCRIPTION_BACKEND", "groq").strip().lower() == "local":
+        return _transcribe_locally(work, duration)
     words = []
     for offset in range(0, math.ceil(duration), AUDIO_CHUNK):
         length = min(AUDIO_CHUNK, duration - offset)

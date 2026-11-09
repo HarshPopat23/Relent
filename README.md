@@ -108,6 +108,11 @@ Paste a YouTube link to generate up to ten distinct **9:16 MP4s** with a headlin
 
 The Shorts Studio uses your Groq account's [free-tier limits](https://console.groq.com/docs/rate-limits). Groq receives audio and transcript excerpts for inference, while FFmpeg renders the video locally. Use a source up to 30 minutes long. Short or quiet videos can yield fewer than ten clips. Captions use local fonts, so install a font for the source language if glyphs are missing. YouTube downloads require access to the video page and its media servers. If your network uses a trusted custom CA, set `SSL_CERT_FILE` to your CA bundle before starting Relent so the downloader can verify that connection.
 
+
+### Use local transcription when Groq audio uploads fail
+
+Install the optional transcription dependency with `python -m pip install "faster-whisper>=1.1,<2"`. Set `RELENT_TRANSCRIPTION_BACKEND=local` in `.env` and restart Relent. The first run downloads the multilingual Whisper base model into `shorts_output/.whisper-cache/` and runs it on the CPU. Groq still receives transcript excerpts for clip selection, so keep `GROQ_API_KEY` configured.
+
 ---
 
 ## 🚀 Quickstart
