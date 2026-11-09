@@ -111,7 +111,7 @@ The Shorts Studio uses your Groq account's [free-tier limits](https://console.gr
 
 ### Use local processing when Groq requests fail
 
-Install the optional transcription dependency with `python -m pip install "faster-whisper>=1.1,<2"`. Set `RELENT_TRANSCRIPTION_BACKEND=local` in `.env` and restart Relent. The first run downloads the multilingual Whisper base model into `shorts_output/.whisper-cache/` and runs it on the CPU. Relent selects clips by speech density and uses transcript excerpts for titles and descriptions in local mode. Local mode needs no Groq API key. YouTube access and the initial Whisper model download still require internet access.
+Install the optional transcription dependency with `python -m pip install "faster-whisper>=1.1,<2"`. Set `RELENT_TRANSCRIPTION_BACKEND=local` in `.env` and restart Relent. The first run downloads the multilingual Whisper base model into `shorts_output/.whisper-cache/` and runs it on the CPU. Local mode translates speech into English for captions, hooks, titles, and descriptions while keeping the original audio. Relent selects clips by speech density and uses translated excerpts for the clip text. Local mode needs no Groq API key. YouTube access and the initial Whisper model download still require internet access.
 
 ---
 

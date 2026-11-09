@@ -385,7 +385,8 @@ def test_local_transcription_skips_groq_audio_upload(tmp_path, monkeypatch):
                 "download_root": str(tmp_path / ".whisper-cache"),
             }
 
-        def transcribe(self, samples, *, word_timestamps):
+        def transcribe(self, samples, *, task, word_timestamps):
+            assert task == "translate"
             assert samples.dtype.name == "float32"
             assert samples.tolist() == [0, 0]
             assert word_timestamps

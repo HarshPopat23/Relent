@@ -229,7 +229,9 @@ def _transcribe_locally(work: Path, duration: float) -> list[Word]:
             compute_type="int8",
             download_root=str(work.parent / ".whisper-cache"),
         )
-        segments, _ = model.transcribe(samples.astype(np.float32) / 32768, word_timestamps=True)
+        segments, _ = model.transcribe(
+            samples.astype(np.float32) / 32768, task="translate", word_timestamps=True
+        )
         words = []
         for segment in segments:
             for entry in segment.words or []:
