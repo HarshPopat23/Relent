@@ -87,6 +87,12 @@ def _run(command: list[str], cwd: Path) -> str:
         ) from exc
 
 
+def _is_html_response(path: Path) -> bool:
+    with path.open("rb") as stream:
+        header = stream.read(512).lstrip().lower()
+    return header.startswith((b"<!doctype html", b"<html"))
+
+
 def _download(url: str, work: Path) -> None:
     from yt_dlp import YoutubeDL
     from yt_dlp.utils import DownloadError
@@ -112,14 +118,27 @@ def _download(url: str, work: Path) -> None:
         "retries": 1,
         "fragment_retries": 1,
     }
+    # yt-dlp defaults to its bundled certifi store. Use Python's system trust
+    # when the caller explicitly configured OpenSSL's CA bundle or directory.
+    if os.getenv("SSL_CERT_FILE") or os.getenv("SSL_CERT_DIR"):
+        options["compat_opts"] = {"no-certifi"}
+    download_error = None
     try:
         with YoutubeDL(options) as downloader:
             downloader.download([url])
     except DownloadError as exc:
+        download_error = exc
+
+    downloaded = list(work.glob("source.*"))
+    if any(_is_html_response(path) for path in downloaded):
+        raise ShortsError(
+            "The YouTube media download returned a web page instead of video. "
+            "Check that your network can access YouTube's media servers, then retry."
+        ) from download_error
+    if download_error is not None:
         raise ShortsError(
             "YouTube download failed. Use an accessible, finished video and update yt-dlp."
-        ) from exc
-    downloaded = list(work.glob("source.*"))
+        ) from download_error
     if len(downloaded) != 1:
         raise ShortsError("Choose an accessible, finished YouTube video up to 30 minutes long.")
     downloaded[0].rename(work / "input.video")

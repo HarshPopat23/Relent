@@ -274,3 +274,60 @@ def test_render_failure_leaves_no_published_batch(tmp_path, monkeypatch):
     with pytest.raises(shorts.ShortsError, match="Fixture render error"):
         shorts.generate_shorts(VIDEO, "test", Path(tmp_path), "failed-batch")
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_youtube_download_respects_configured_tls(tmp_path, monkeypatch, configured):
+    import yt_dlp
+
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    monkeypatch.delenv("SSL_CERT_DIR", raising=False)
+    if configured:
+        monkeypatch.setenv("SSL_CERT_FILE", "/fixture/ca-bundle.pem")
+
+    class Downloader:
+        def __init__(self, options):
+            assert ("no-certifi" in options.get("compat_opts", ())) is configured
+            assert not options.get("nocheckcertificate")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def download(self, urls):
+            assert urls == [VIDEO]
+            (tmp_path / "source.mp4").write_bytes(b"fixture")
+
+    monkeypatch.setattr(yt_dlp, "YoutubeDL", Downloader)
+    shorts._download(VIDEO, tmp_path)
+    assert (tmp_path / "input.video").read_bytes() == b"fixture"
+
+
+@pytest.mark.parametrize("merge_failed", [False, True])
+def test_reports_html_media_response(tmp_path, monkeypatch, merge_failed):
+    import yt_dlp
+    from yt_dlp.utils import DownloadError
+
+    class Downloader:
+        def __init__(self, options):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def download(self, urls):
+            (tmp_path / "source.f18.mp4").write_bytes(
+                b"\n<!DOCTYPE HTML><title>Site Unavailable</title>"
+            )
+            if merge_failed:
+                raise DownloadError("Postprocessing failed")
+
+    monkeypatch.setattr(yt_dlp, "YoutubeDL", Downloader)
+    with pytest.raises(shorts.ShortsError, match="returned a web page"):
+        shorts._download(VIDEO, tmp_path)
+    assert not (tmp_path / "input.video").exists()

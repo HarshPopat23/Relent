@@ -106,7 +106,7 @@ Paste a YouTube link to generate up to ten distinct **9:16 MP4s** with a headlin
 3. Create a `.env` in the repository root and set `GROQ_API_KEY` to your own [Groq API key](https://console.groq.com/keys). The default models are `whisper-large-v3-turbo` and `openai/gpt-oss-20b`. To override them, set `GROQ_TRANSCRIPTION_MODEL` or `GROQ_CHAT_MODEL`.
 4. Run `python server.py` from the repository root and open [Shorts Studio](http://127.0.0.1:8000/shorts). Paste a link to a finished YouTube video you can reuse, then download each MP4 and the batch metadata. Outputs are saved under `shorts_output/`.
 
-The Shorts Studio uses your Groq account's [free-tier limits](https://console.groq.com/docs/rate-limits). Groq receives audio and transcript excerpts for inference, while FFmpeg renders the video locally. Use a source up to 30 minutes long. Short or quiet videos can yield fewer than ten clips. Captions use local fonts, so install a font for the source language if glyphs are missing.
+The Shorts Studio uses your Groq account's [free-tier limits](https://console.groq.com/docs/rate-limits). Groq receives audio and transcript excerpts for inference, while FFmpeg renders the video locally. Use a source up to 30 minutes long. Short or quiet videos can yield fewer than ten clips. Captions use local fonts, so install a font for the source language if glyphs are missing. YouTube downloads require access to the video page and its media servers. If your network uses a trusted custom CA, set `SSL_CERT_FILE` to your CA bundle before starting Relent so the downloader can verify that connection.
 
 ---
 
