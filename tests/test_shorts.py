@@ -409,3 +409,58 @@ def test_local_transcription_skips_groq_audio_upload(tmp_path, monkeypatch):
         shorts.Word(14, 15.5, "first"),
         shorts.Word(19, 20, "last"),
     ]
+
+
+@pytest.mark.integration
+def test_local_mode_renders_without_groq_or_an_api_key(tmp_path, monkeypatch):
+    if not all(shutil.which(binary) for binary in ("ffmpeg", "ffprobe")):
+        pytest.skip("FFmpeg and FFprobe are required for the media integration test")
+
+    def download(url, work):
+        assert url == VIDEO
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=blue:s=160x90:r=8",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=440",
+                "-t",
+                "20",
+                "-c:v",
+                "libx264",
+                "-c:a",
+                "aac",
+                "-f",
+                "mp4",
+                str(work / "input.video"),
+            ],
+            check=True,
+            timeout=30,
+        )
+
+    def unexpected_groq(*args, **kwargs):
+        pytest.fail("Local mode called Groq")
+
+    words = [shorts.Word(i, i + 0.9, "speech") for i in range(20)]
+    monkeypatch.setenv("RELENT_TRANSCRIPTION_BACKEND", "local")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setattr(shorts_api, "SHORTS_DIR", tmp_path)
+    monkeypatch.setattr(shorts, "_download", download)
+    monkeypatch.setattr(shorts, "_transcribe_locally", lambda *args: words)
+    monkeypatch.setattr(shorts, "_groq_post", unexpected_groq)
+    with TestClient(app, base_url="http://127.0.0.1") as client:
+        result = client.post("/api/shorts", json={"url": VIDEO})
+        assert result.status_code == 201, result.text
+        (clip,) = result.json()["clips"]
+        assert clip["title"].startswith("speech")
+        assert clip["hashtags"] == ["#Shorts"]
+        response = client.get(clip["video_url"], headers={"Range": "bytes=0-31"})
+        assert response.status_code == 206
+        assert response.content[4:8] == b"ftyp"

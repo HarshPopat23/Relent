@@ -11,7 +11,7 @@ from uuid import uuid4
 from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Route
 
-from core.shorts import SHORT_COUNT, ShortsError, generate_shorts, youtube_url
+from core.shorts import SHORT_COUNT, ShortsError, generate_shorts, local_mode_enabled, youtube_url
 
 SHORTS_DIR = Path("shorts_output")
 _STUDIO_LOCK = Lock()
@@ -57,7 +57,7 @@ async def create_shorts(request):
     except (AttributeError, KeyError, TypeError, ValueError):
         return _error("Paste an HTTPS link to one YouTube video.", 400)
     key = os.getenv("GROQ_API_KEY", "").strip()
-    if not key:
+    if not key and not local_mode_enabled():
         return _error("Set GROQ_API_KEY in the backend .env file and restart Relent.", 503)
     return await asyncio.to_thread(_run_batch, url, key)
 

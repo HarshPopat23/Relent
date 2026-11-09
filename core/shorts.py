@@ -10,6 +10,7 @@ import wave
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from textwrap import shorten
 from urllib.parse import parse_qs, urlsplit
 
 import requests
@@ -244,8 +245,12 @@ def _transcribe_locally(work: Path, duration: float) -> list[Word]:
         ) from exc
 
 
+def local_mode_enabled() -> bool:
+    return os.getenv("RELENT_TRANSCRIPTION_BACKEND", "groq").strip().lower() == "local"
+
+
 def _transcribe(key: str, work: Path, duration: float) -> list[Word]:
-    if os.getenv("RELENT_TRANSCRIPTION_BACKEND", "groq").strip().lower() == "local":
+    if local_mode_enabled():
         return _transcribe_locally(work, duration)
     words = []
     for offset in range(0, math.ceil(duration), AUDIO_CHUNK):
@@ -332,7 +337,32 @@ def _candidates(words: list[Word], duration: float) -> list[list[Word]]:
     return candidates
 
 
+def _rank_locally(candidates: list[list[Word]]) -> list[dict]:
+    """Favor clips with continuous speech and use verbatim text for metadata."""
+    ranked = sorted(
+        enumerate(candidates),
+        key=lambda item: len(item[1]) / (item[1][-1].end - item[1][0].start),
+        reverse=True,
+    )
+    clips = []
+    for candidate_id, words in ranked[:SHORT_COUNT]:
+        excerpt = " ".join(word.text for word in words)
+        clips.append(
+            {
+                "id": candidate_id,
+                "title": shorten(excerpt, width=100, placeholder="…"),
+                "description": shorten(excerpt, width=600, placeholder="…"),
+                "hook": shorten(excerpt, width=55, placeholder="…"),
+                "hashtags": ["#Shorts"],
+            }
+        )
+    return clips
+
+
 def _rank(key: str, candidates: list[list[Word]]) -> list[dict]:
+    if local_mode_enabled():
+        return _rank_locally(candidates)
+
     excerpts = []
     for index, clip in enumerate(candidates):
         text = " ".join(word.text for word in clip)
